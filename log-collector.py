@@ -145,7 +145,7 @@ def main():
     # Inisialisasi Header CSV jika file belum ada
     if not os.path.isfile(csv_file_path):
         dummy_df = pd.DataFrame(columns=['fetched_at', 'source_router', 'log_id', 'time', 'topics', 'message'])
-        dummy_df.to_csv(csv_file_path, index=False)
+        dummy_df.to_csv(csv_file_path, index=False, encoding='utf-8')
         print(f"[INFO] File {csv_file_path} dibuat baru.")
 
     # Daftar pesan status yang akan dicetak bergantian setiap loop (5 detik)
@@ -170,9 +170,9 @@ def main():
             
             if all_new_logs:
                 df = pd.DataFrame(all_new_logs)
-                # Tulis header hanya jika file baru (adaptive); set encoding dan line terminator untuk konsistensi
+                # Tulis header hanya jika file baru (adaptive)
                 write_header = not os.path.isfile(csv_file_path)
-                df.to_csv(csv_file_path, mode='a', index=False, header=write_header, encoding='utf-8', line_terminator='\n')
+                df.to_csv(csv_file_path, mode='a', index=False, header=write_header, encoding='utf-8')
                 print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
             else:
                 print("--> Tidak ada log baru (Duplikasi dicegah).")
