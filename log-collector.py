@@ -2,8 +2,11 @@ import requests
 import pandas as pd
 import time
 from requests.auth import HTTPBasicAuth
+from requests.exceptions import RequestException
 from datetime import datetime
 import os
+import csv
+import sys
 
 # ================= KONFIGURASI =================
 ROUTERS = [
@@ -14,11 +17,14 @@ ROUTERS = [
 
 USER = "admin"
 PASS = "admin"
-CSV_FILE = "dataset_log_skripsi.csv"
+# Directory ke Shared Folder yang dimount dari Host Windows (UNC path)
+CSV_DIR = r"\\vmware-host\Shared Folders\shared_folder_data_log"
 
 # State untuk menyimpan ID log terakhir (Hex) untuk setiap router
 # Contoh: {'R1-Core': 20, 'R2-Dist': 5}
-last_seen_ids = {r['name']: -1 for r in ROUTERS} 
+last_seen_ids = {r['name']: -1 for r in ROUTERS}
+# State tambahan: last seen timestamp per router untuk dedup lebih robust
+last_seen_times = {r['name']: None for r in ROUTERS}
 # ===============================================
 
 def parse_mikrotik_id(id_str):
@@ -30,72 +36,117 @@ def parse_mikrotik_id(id_str):
         return -1
 
 def fetch_logs(router):
-    """Mengambil log dan memfilter hanya yang BARU"""
+    """Mengambil log dan memfilter hanya yang BARU (berbasis ID dan timestamp)"""
     url = f"http://{router['ip']}/rest/log"
     # Gunakan verify=False jika nanti ganti ke HTTPS
     
     try:
-        response = requests.get(url, auth=HTTPBasicAuth(USER, PASS), timeout=2)
+        # timeout=(connect_timeout, read_timeout) untuk kontrol lebih baik
+        response = requests.get(url, auth=HTTPBasicAuth(USER, PASS), timeout=(2, 5))
+        response.raise_for_status()  # Raise HTTPError jika status bukan 200
         
-        if response.status_code == 200:
-            raw_data = response.json()
-            new_logs = []
-            
-            # Urutkan log berdasarkan ID (penting karena API kadang tidak urut)
-            # Menghindari error jika '.id' tidak ada
-            raw_data_sorted = sorted(raw_data, key=lambda x: parse_mikrotik_id(x.get('.id', '*0')))
+        raw_data = response.json()
+        new_logs = []
+        
+        # Urutkan log berdasarkan ID (penting karena API kadang tidak urut)
+        # Menghindari error jika '.id' tidak ada
+        raw_data_sorted = sorted(raw_data, key=lambda x: parse_mikrotik_id(x.get('.id', '*0')))
 
-            current_last_id = last_seen_ids[router['name']]
-            max_id_in_batch = current_last_id
+        current_last_id = last_seen_ids[router['name']]
+        last_time = last_seen_times[router['name']]
+        max_id_in_batch = current_last_id
+        latest_time = last_time
 
-            for entry in raw_data_sorted:
-                entry_id = parse_mikrotik_id(entry.get('.id', '*0'))
-                
-                # LOGIC UTAMA: Hanya ambil jika ID > ID terakhir yang disimpan
-                if entry_id > current_last_id:
-                    # Cleaning Topics: List ['ospf', 'error'] -> String "ospf,error"
-                    # Jika topics adalah list, join; jika string, langsung gunakan
-                    topics = entry.get('topics', [])
-                    if isinstance(topics, list):
-                        topics_str = ",".join(filter(None, topics))  # Filter empty strings
-                    else:
-                        topics_str = str(topics) if topics else ""
-                    
-                    clean_entry = {
-                        'fetched_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        'source_router': router['name'],
-                        'log_id': entry.get('.id'), # Simpan ID asli untuk referensi
-                        'time': entry.get('time'),
-                        'topics': topics_str, 
-                        'message': entry.get('message')
-                    }
-                    new_logs.append(clean_entry)
-                    
-                    # Update max_id sementara
-                    if entry_id > max_id_in_batch:
-                        max_id_in_batch = entry_id
+        for entry in raw_data_sorted:
+            entry_id = parse_mikrotik_id(entry.get('.id', '*0'))
+            entry_time_str = entry.get('time')
+            entry_time = None
             
-            # Update state global hanya jika ada log baru
-            if max_id_in_batch > current_last_id:
-                last_seen_ids[router['name']] = max_id_in_batch
-                
-            return new_logs
-        else:
-            print(f" [!] Gagal login ke {router['name']} (Status: {response.status_code})")
-            return []
+            # Parse entry time jika tersedia (untuk dedup berbasis timestamp)
+            if entry_time_str:
+                try:
+                    entry_time = datetime.strptime(entry_time_str, "%Y-%m-%d %H:%M:%S")
+                except (ValueError, TypeError):
+                    entry_time = None
             
-    except Exception as e:
+            # Accept entry jika ID lebih baru OR timestamp lebih baru dari last seen
+            accept_by_id = (entry_id > current_last_id)
+            accept_by_time = False
+            if entry_time and last_time:
+                accept_by_time = (entry_time > last_time)
+            elif entry_time and last_time is None:
+                accept_by_time = True
+            
+            if accept_by_id or accept_by_time:
+                # Cleaning Topics: List ['ospf', 'error'] -> String "ospf,error"
+                # Robust handling untuk None, non-string elements, dan empty strings
+                topics = entry.get('topics')
+                if not topics:
+                    topics_str = ""
+                elif isinstance(topics, list):
+                    # Convert semua elemen ke string, trim whitespace, abaikan yang kosong
+                    topics_str = ",".join(str(t).strip() for t in topics if t is not None and str(t).strip())
+                else:
+                    # Jika sudah string, bersihkan whitespace
+                    topics_str = str(topics).strip()
+                
+                clean_entry = {
+                    'fetched_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'source_router': router['name'],
+                    'log_id': entry.get('.id'), # Simpan ID asli untuk referensi
+                    'time': entry.get('time'),
+                    'topics': topics_str, 
+                    'message': entry.get('message')
+                }
+                new_logs.append(clean_entry)
+                
+                # Update max_id sementara
+                if entry_id > max_id_in_batch:
+                    max_id_in_batch = entry_id
+                
+                # Update latest timestamp
+                if entry_time:
+                    if latest_time is None or entry_time > latest_time:
+                        latest_time = entry_time
+        
+        # Update state global hanya jika ada log baru
+        if max_id_in_batch > current_last_id:
+            last_seen_ids[router['name']] = max_id_in_batch
+        if latest_time and (last_time is None or latest_time > last_time):
+            last_seen_times[router['name']] = latest_time
+            
+        return new_logs
+        
+    except RequestException as e:
+        # Catch requests-specific exceptions (timeout, connection error, http error, etc.)
         print(f" [X] Error koneksi ke {router['name']}: {e}")
+        return []
+    except Exception as e:
+        # Catch unexpected errors (json decode, etc.) — jangan menelan KeyboardInterrupt
+        if isinstance(e, (KeyboardInterrupt, SystemExit)):
+            raise
+        print(f" [X] Error tak terduga di {router['name']}: {e}")
         return []
 
 def main():
     print("=== SKRIPSI LOG COLLECTOR (ANTI-DUPLICATE) STARTED ===")
-    
+    # Validasi: pastikan folder shared mount ada sebelum melanjutkan
+    shared_dir = CSV_DIR
+    if not shared_dir or not os.path.isdir(shared_dir):
+        print("Error: Shared folder not mounted")
+        sys.exit(1)
+
+    # Buat nama file CSV ber-timestamp untuk run ini
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_filename = f"dataset_log_{timestamp}.csv"
+    csv_file_path = os.path.join(shared_dir, csv_filename)
+    print(f"[INFO] Menggunakan file CSV: {csv_file_path}")
+
     # Inisialisasi Header CSV jika file belum ada
-    if not os.path.isfile(CSV_FILE):
+    if not os.path.isfile(csv_file_path):
         dummy_df = pd.DataFrame(columns=['fetched_at', 'source_router', 'log_id', 'time', 'topics', 'message'])
-        dummy_df.to_csv(CSV_FILE, index=False)
-        print(f"[INFO] File {CSV_FILE} dibuat baru.")
+        dummy_df.to_csv(csv_file_path, index=False)
+        print(f"[INFO] File {csv_file_path} dibuat baru.")
 
     # Daftar pesan status yang akan dicetak bergantian setiap loop (5 detik)
     status_messages = [
@@ -119,7 +170,9 @@ def main():
             
             if all_new_logs:
                 df = pd.DataFrame(all_new_logs)
-                df.to_csv(CSV_FILE, mode='a', index=False, header=False)
+                # Tulis header hanya jika file baru (adaptive); set encoding dan line terminator untuk konsistensi
+                write_header = not os.path.isfile(csv_file_path)
+                df.to_csv(csv_file_path, mode='a', index=False, header=write_header, encoding='utf-8', line_terminator='\n')
                 print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
             else:
                 print("--> Tidak ada log baru (Duplikasi dicegah).")
@@ -133,7 +186,10 @@ def main():
     except KeyboardInterrupt:
         print("\n[INFO] Stop requested by user (Ctrl+C). Exiting gracefully.")
     except Exception as e:
+        # Catch unexpected errors dalam main loop
         print(f"[X] Unexpected error in main loop: {e}")
+        import traceback
+        traceback.print_exc()  # Debug: cetak traceback jika ada error yang tak terduga
 
 if __name__ == "__main__":
     main()
