@@ -60,7 +60,7 @@ def fetch_logs(router):
     
     try:
         # timeout=(connect_timeout, read_timeout) untuk kontrol lebih baik
-        response = requests.get(url, auth=HTTPBasicAuth(USER, PASS), timeout=(2, 5))
+        response = requests.get(url, auth=HTTPBasicAuth(USER, PASS), timeout=(5, 10))
         response.raise_for_status()  # Raise HTTPError jika status bukan 200
         
         raw_data = response.json()
