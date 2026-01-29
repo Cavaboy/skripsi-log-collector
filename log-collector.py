@@ -10,7 +10,7 @@ import os
 ROUTERS = [
     {"name": "R1-Core",   "ip": "192.168.153.131"},  # <-- Ganti IP ini
     {"name": "R2-Dist",   "ip": "192.168.153.132"},  # <-- Ganti IP ini
-    {"name": "R3-Dist",   "ip": "192.168.153.133"}   # <-- Ganti IP ini
+    {"name": "R3-Access", "ip": "192.168.153.133"}   # <-- Ganti IP ini
 ]
 
 USER = "admin"
@@ -45,7 +45,6 @@ def fetch_logs(router):
 def main():
     print("=== SKRIPSI LOG COLLECTOR STARTED ===")
     print(f"Target: {len(ROUTERS)} Router")
-    print("Tekan Ctrl+C untuk STOP.\n")
     
     while True:
         all_new_logs = []
