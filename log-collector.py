@@ -97,6 +97,16 @@ def main():
         dummy_df.to_csv(CSV_FILE, index=False)
         print(f"[INFO] File {CSV_FILE} dibuat baru.")
 
+    # Daftar pesan status yang akan dicetak bergantian setiap loop (5 detik)
+    status_messages = [
+        "Waiting for new logs...",
+        "Polling routers...",
+        "Heartbeat: collector alive",
+        "Idle — no new entries",
+        "Still running — checking devices"
+    ]
+    status_idx = 0
+
     while True:
         all_new_logs = []
         
@@ -112,6 +122,11 @@ def main():
             print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
         else:
             print("--> Tidak ada log baru (Duplikasi dicegah).")
+
+        # Cetak satu pesan status berbeda setiap iterasi (untuk menunjukkan script berjalan)
+        status = status_messages[status_idx % len(status_messages)]
+        print(f"-- {status}  [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
+        status_idx += 1
 
         time.sleep(5)
 
