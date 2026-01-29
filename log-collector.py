@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import csv
 import sys
+import errno
 
 # ================= KONFIGURASI =================
 ROUTERS = [
@@ -34,6 +35,23 @@ def parse_mikrotik_id(id_str):
         return int(id_str.replace('*', ''), 16)
     except:
         return -1
+
+def write_csv_with_retry(df, csv_file_path, write_header=False, max_retries=3):
+    """Menulis DataFrame ke CSV dengan retry logic untuk mengatasi file locking."""
+    for attempt in range(max_retries):
+        try:
+            df.to_csv(csv_file_path, mode='a', index=False, header=write_header, encoding='utf-8')
+            return True
+        except (PermissionError, IOError, OSError) as e:
+            if attempt < max_retries - 1:
+                # Tunggu sebelum retry (exponential backoff: 1s, 2s, 3s)
+                wait_time = (attempt + 1) * 1
+                print(f"[WARN] Write failed (attempt {attempt + 1}/{max_retries}), retrying in {wait_time}s: {e}")
+                time.sleep(wait_time)
+            else:
+                print(f"[ERROR] Failed to write CSV after {max_retries} attempts: {e}")
+                return False
+    return False
 
 def fetch_logs(router):
     """Mengambil log dan memfilter hanya yang BARU (berbasis ID dan timestamp)"""
@@ -145,8 +163,12 @@ def main():
     # Inisialisasi Header CSV jika file belum ada
     if not os.path.isfile(csv_file_path):
         dummy_df = pd.DataFrame(columns=['fetched_at', 'source_router', 'log_id', 'time', 'topics', 'message'])
-        dummy_df.to_csv(csv_file_path, index=False, encoding='utf-8')
-        print(f"[INFO] File {csv_file_path} dibuat baru.")
+        success = write_csv_with_retry(dummy_df, csv_file_path, write_header=True)
+        if success:
+            print(f"[INFO] File {csv_file_path} dibuat baru.")
+        else:
+            print(f"[ERROR] Gagal membuat file CSV di {csv_file_path}")
+            sys.exit(1)
 
     # Daftar pesan status yang akan dicetak bergantian setiap loop (5 detik)
     status_messages = [
@@ -172,8 +194,11 @@ def main():
                 df = pd.DataFrame(all_new_logs)
                 # Tulis header hanya jika file baru (adaptive)
                 write_header = not os.path.isfile(csv_file_path)
-                df.to_csv(csv_file_path, mode='a', index=False, header=write_header, encoding='utf-8')
-                print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
+                success = write_csv_with_retry(df, csv_file_path, write_header=write_header)
+                if success:
+                    print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
+                else:
+                    print(f"--> [WARN] Gagal menyimpan {len(df)} baris ke CSV (akan retry di iterasi berikutnya).")
             else:
                 print("--> Tidak ada log baru (Duplikasi dicegah).")
 
