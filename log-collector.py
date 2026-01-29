@@ -54,8 +54,12 @@ def fetch_logs(router):
                 # LOGIC UTAMA: Hanya ambil jika ID > ID terakhir yang disimpan
                 if entry_id > current_last_id:
                     # Cleaning Topics: List ['ospf', 'error'] -> String "ospf,error"
-                    # Ini agar mudah dibaca CSV
-                    topics_str = ",".join(entry.get('topics', []))
+                    # Jika topics adalah list, join; jika string, langsung gunakan
+                    topics = entry.get('topics', [])
+                    if isinstance(topics, list):
+                        topics_str = ",".join(filter(None, topics))  # Filter empty strings
+                    else:
+                        topics_str = str(topics) if topics else ""
                     
                     clean_entry = {
                         'fetched_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
