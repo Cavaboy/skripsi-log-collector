@@ -107,28 +107,33 @@ def main():
     ]
     status_idx = 0
 
-    while True:
-        all_new_logs = []
-        
-        for r in ROUTERS:
-            logs = fetch_logs(r)
-            if logs:
-                all_new_logs.extend(logs)
-                print(f"    + {r['name']}: {len(logs)} log baru.")
-        
-        if all_new_logs:
-            df = pd.DataFrame(all_new_logs)
-            df.to_csv(CSV_FILE, mode='a', index=False, header=False)
-            print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
-        else:
-            print("--> Tidak ada log baru (Duplikasi dicegah).")
+    try:
+        while True:
+            all_new_logs = []
+            
+            for r in ROUTERS:
+                logs = fetch_logs(r)
+                if logs:
+                    all_new_logs.extend(logs)
+                    print(f"    + {r['name']}: {len(logs)} log baru.")
+            
+            if all_new_logs:
+                df = pd.DataFrame(all_new_logs)
+                df.to_csv(CSV_FILE, mode='a', index=False, header=False)
+                print(f"--> [OK] Total {len(df)} baris tersimpan ke CSV.")
+            else:
+                print("--> Tidak ada log baru (Duplikasi dicegah).")
 
-        # Cetak satu pesan status berbeda setiap iterasi (untuk menunjukkan script berjalan)
-        status = status_messages[status_idx % len(status_messages)]
-        print(f"-- {status}  [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
-        status_idx += 1
+            # Cetak satu pesan status berbeda setiap iterasi (untuk menunjukkan script berjalan)
+            status = status_messages[status_idx % len(status_messages)]
+            print(f"-- {status}  [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
+            status_idx += 1
 
-        time.sleep(5)
+            time.sleep(5)
+    except KeyboardInterrupt:
+        print("\n[INFO] Stop requested by user (Ctrl+C). Exiting gracefully.")
+    except Exception as e:
+        print(f"[X] Unexpected error in main loop: {e}")
 
 if __name__ == "__main__":
     main()
