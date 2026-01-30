@@ -1,0 +1,213 @@
+fetched_at,source_router,log_id,time,topics,message
+2026-01-30 13:11:05,R1-Core,*0,2026-01-30 12:55:50,"system,info",router rebooted by console:admin@ttyS0/shutdown
+2026-01-30 13:11:05,R1-Core,*1,2026-01-30 12:55:51,"interface,info",lo link up
+2026-01-30 13:11:05,R1-Core,*2,2026-01-30 12:55:51,"route,ospf,info",instance { version: 2 router-id: 1.1.1.1 } created
+2026-01-30 13:11:05,R1-Core,*3,2026-01-30 12:55:51,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area { 0.0.0.0 } created
+2026-01-30 13:11:05,R1-Core,*4,2026-01-30 12:55:52,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 1.1.1.1%loopback } created
+2026-01-30 13:11:05,R1-Core,*5,2026-01-30 12:55:52,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 1.1.1.1%loopback } state change to Waiting
+2026-01-30 13:11:05,R1-Core,*6,2026-01-30 12:55:54,"interface,info","ether1 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R1-Core,*7,2026-01-30 12:55:55,"interface,info","ether2 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R1-Core,*8,2026-01-30 12:55:55,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } created
+2026-01-30 13:11:05,R1-Core,*9,2026-01-30 12:55:55,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } state change to Waiting
+2026-01-30 13:11:05,R1-Core,*A,2026-01-30 12:55:55,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Down } state change to Init
+2026-01-30 13:11:05,R1-Core,*B,2026-01-30 12:55:56,"dhcp,info",dhcp-client on ether1 got IP address 192.168.153.131
+2026-01-30 13:11:05,R1-Core,*C,2026-01-30 12:55:59,"interface,info","ether3 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R1-Core,*D,2026-01-30 12:55:59,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } created
+2026-01-30 13:11:05,R1-Core,*E,2026-01-30 12:55:59,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } state change to Waiting
+2026-01-30 13:11:05,R1-Core,*F,2026-01-30 12:56:05,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Init } state change to TwoWay
+2026-01-30 13:11:05,R1-Core,*10,2026-01-30 12:56:32,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 1.1.1.1%loopback } neighbor election
+2026-01-30 13:11:05,R1-Core,*11,2026-01-30 12:56:32,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 1.1.1.1%loopback } state change to DR
+2026-01-30 13:11:05,R1-Core,*12,2026-01-30 12:56:32,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 1.1.1.1%loopback } change DR: me
+2026-01-30 13:11:05,R1-Core,*13,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor election
+2026-01-30 13:11:05,R1-Core,*14,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } state change to DR other
+2026-01-30 13:11:05,R1-Core,*15,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } change DR: 2.2.2.2 BDR: 2.2.2.2
+2026-01-30 13:11:05,R1-Core,*16,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: TwoWay } state change to ExStart
+2026-01-30 13:11:05,R1-Core,*17,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: ExStart } negotiation done
+2026-01-30 13:11:05,R1-Core,*18,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: ExStart } state change to Exchange
+2026-01-30 13:11:05,R1-Core,*19,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Exchange } exchange lsdb size 1
+2026-01-30 13:11:05,R1-Core,*1A,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor election
+2026-01-30 13:11:05,R1-Core,*1B,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } state change to Backup DR
+2026-01-30 13:11:05,R1-Core,*1C,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } change BDR: me
+2026-01-30 13:11:05,R1-Core,*1D,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Exchange } exchange done
+2026-01-30 13:11:05,R1-Core,*1E,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Exchange } state change to Loading
+2026-01-30 13:11:05,R1-Core,*1F,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Loading } loading done
+2026-01-30 13:11:05,R1-Core,*20,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.1%ether2 } neighbor { router-id: 2.2.2.2 state: Loading } state change to Full
+2026-01-30 13:11:05,R1-Core,*21,2026-01-30 12:56:38,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Down } state change to Init
+2026-01-30 13:11:05,R1-Core,*22,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor election
+2026-01-30 13:11:05,R1-Core,*23,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } state change to DR
+2026-01-30 13:11:05,R1-Core,*24,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } change DR: me
+2026-01-30 13:11:05,R1-Core,*25,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Init } state change to TwoWay
+2026-01-30 13:11:05,R1-Core,*26,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor election
+2026-01-30 13:11:05,R1-Core,*27,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } change BDR: 3.3.3.3
+2026-01-30 13:11:05,R1-Core,*28,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: TwoWay } state change to ExStart
+2026-01-30 13:11:05,R1-Core,*29,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: ExStart } state change to ExStart
+2026-01-30 13:11:05,R1-Core,*2A,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: ExStart } negotiation done
+2026-01-30 13:11:05,R1-Core,*2B,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: ExStart } state change to Exchange
+2026-01-30 13:11:05,R1-Core,*2C,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Exchange } exchange lsdb size 3
+2026-01-30 13:11:05,R1-Core,*2D,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Exchange } exchange done
+2026-01-30 13:11:05,R1-Core,*2E,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Exchange } state change to Loading
+2026-01-30 13:11:05,R1-Core,*2F,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Loading } loading done
+2026-01-30 13:11:05,R1-Core,*30,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 1.1.1.1 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.9%ether3 } neighbor { router-id: 3.3.3.3 state: Loading } state change to Full
+2026-01-30 13:11:05,R1-Core,*31,2026-01-30 13:11:03,"system,info,account",user admin logged in from 192.168.153.130 via rest-api
+2026-01-30 13:11:05,R1-Core,*32,2026-01-30 13:11:03,"system,info,account",user admin logged in via api
+2026-01-30 13:11:05,R2-Dist,*0,2026-01-30 12:55:50,"system,info",router rebooted by console:admin@ttyS0/shutdown
+2026-01-30 13:11:05,R2-Dist,*1,2026-01-30 12:55:51,"interface,info",lo link up
+2026-01-30 13:11:05,R2-Dist,*2,2026-01-30 12:55:51,"route,ospf,info",instance { version: 2 router-id: 2.2.2.2 } created
+2026-01-30 13:11:05,R2-Dist,*3,2026-01-30 12:55:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area { 0.0.0.0 } created
+2026-01-30 13:11:05,R2-Dist,*4,2026-01-30 12:55:52,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 2.2.2.2%loopback } created
+2026-01-30 13:11:05,R2-Dist,*5,2026-01-30 12:55:52,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 2.2.2.2%loopback } state change to Waiting
+2026-01-30 13:11:05,R2-Dist,*6,2026-01-30 12:55:54,"interface,info","ether1 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R2-Dist,*7,2026-01-30 12:55:55,"interface,info","ether2 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R2-Dist,*8,2026-01-30 12:55:55,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } created
+2026-01-30 13:11:05,R2-Dist,*9,2026-01-30 12:55:55,"dhcp,info",dhcp-client on ether1 got IP address 192.168.153.132
+2026-01-30 13:11:05,R2-Dist,*A,2026-01-30 12:55:55,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } state change to Waiting
+2026-01-30 13:11:05,R2-Dist,*B,2026-01-30 12:55:58,"interface,info","ether3 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R2-Dist,*C,2026-01-30 12:55:58,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } created
+2026-01-30 13:11:05,R2-Dist,*D,2026-01-30 12:55:58,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } state change to Waiting
+2026-01-30 13:11:05,R2-Dist,*E,2026-01-30 12:56:02,"interface,info","ether4 link up (speed 1G, full duplex)"
+2026-01-30 13:11:05,R2-Dist,*F,2026-01-30 12:56:05,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Down } state change to Init
+2026-01-30 13:11:05,R2-Dist,*10,2026-01-30 12:56:05,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Init } state change to TwoWay
+2026-01-30 13:11:05,R2-Dist,*11,2026-01-30 12:56:32,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 2.2.2.2%loopback } neighbor election
+2026-01-30 13:11:05,R2-Dist,*12,2026-01-30 12:56:32,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 2.2.2.2%loopback } state change to DR
+2026-01-30 13:11:05,R2-Dist,*13,2026-01-30 12:56:32,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 2.2.2.2%loopback } change DR: me
+2026-01-30 13:11:05,R2-Dist,*14,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor election
+2026-01-30 13:11:05,R2-Dist,*15,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } state change to DR
+2026-01-30 13:11:05,R2-Dist,*16,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } change DR: me BDR: 1.1.1.1
+2026-01-30 13:11:05,R2-Dist,*17,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: TwoWay } state change to ExStart
+2026-01-30 13:11:05,R2-Dist,*18,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: ExStart } negotiation done
+2026-01-30 13:11:05,R2-Dist,*19,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: ExStart } state change to Exchange
+2026-01-30 13:11:05,R2-Dist,*1A,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Exchange } exchange lsdb size 1
+2026-01-30 13:11:05,R2-Dist,*1B,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor election
+2026-01-30 13:11:05,R2-Dist,*1C,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Exchange } exchange done
+2026-01-30 13:11:05,R2-Dist,*1D,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Exchange } state change to Loading
+2026-01-30 13:11:05,R2-Dist,*1E,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Loading } loading done
+2026-01-30 13:11:05,R2-Dist,*1F,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.2%ether2 } neighbor { router-id: 1.1.1.1 state: Loading } state change to Full
+2026-01-30 13:11:05,R2-Dist,*20,2026-01-30 12:56:38,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor election
+2026-01-30 13:11:05,R2-Dist,*21,2026-01-30 12:56:38,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } state change to DR
+2026-01-30 13:11:05,R2-Dist,*22,2026-01-30 12:56:38,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } change DR: me
+2026-01-30 13:11:05,R2-Dist,*23,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: Down } state change to Init
+2026-01-30 13:11:05,R2-Dist,*24,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: Init } state change to TwoWay
+2026-01-30 13:11:05,R2-Dist,*25,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: TwoWay } state change to ExStart
+2026-01-30 13:11:05,R2-Dist,*26,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: ExStart } negotiation done
+2026-01-30 13:11:05,R2-Dist,*27,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: ExStart } state change to Exchange
+2026-01-30 13:11:05,R2-Dist,*28,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: Exchange } exchange lsdb size 5
+2026-01-30 13:11:05,R2-Dist,*29,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor election
+2026-01-30 13:11:05,R2-Dist,*2A,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } change BDR: 3.3.3.3
+2026-01-30 13:11:05,R2-Dist,*2B,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: Exchange } exchange done
+2026-01-30 13:11:05,R2-Dist,*2C,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 2.2.2.2 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.5%ether3 } neighbor { router-id: 3.3.3.3 state: Exchange } state change to Full
+2026-01-30 13:11:05,R2-Dist,*2D,2026-01-30 13:11:03,"system,info,account",user admin logged in from 192.168.153.130 via rest-api
+2026-01-30 13:11:05,R2-Dist,*2E,2026-01-30 13:11:04,"system,info,account",user admin logged in via api
+2026-01-30 13:11:06,R3-Access,*0,2026-01-30 12:56:33,"system,info",router rebooted by console:admin@ttyS0/shutdown
+2026-01-30 13:11:06,R3-Access,*1,2026-01-30 12:56:33,"interface,info",lo link up
+2026-01-30 13:11:06,R3-Access,*2,2026-01-30 12:56:34,"route,ospf,info",instance { version: 2 router-id: 3.3.3.3 } created
+2026-01-30 13:11:06,R3-Access,*3,2026-01-30 12:56:34,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area { 0.0.0.0 } created
+2026-01-30 13:11:06,R3-Access,*4,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 3.3.3.3%loopback } created
+2026-01-30 13:11:06,R3-Access,*5,2026-01-30 12:56:35,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 3.3.3.3%loopback } state change to Waiting
+2026-01-30 13:11:06,R3-Access,*6,2026-01-30 12:56:37,"interface,info","ether1 link up (speed 1G, full duplex)"
+2026-01-30 13:11:06,R3-Access,*7,2026-01-30 12:56:38,"interface,info","ether2 link up (speed 1G, full duplex)"
+2026-01-30 13:11:06,R3-Access,*8,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } created
+2026-01-30 13:11:06,R3-Access,*9,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } state change to Waiting
+2026-01-30 13:11:06,R3-Access,*A,2026-01-30 12:56:39,"dhcp,info",dhcp-client on ether1 got IP address 192.168.153.133
+2026-01-30 13:11:06,R3-Access,*B,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Down } state change to Init
+2026-01-30 13:11:06,R3-Access,*C,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Init } state change to TwoWay
+2026-01-30 13:11:06,R3-Access,*D,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor election
+2026-01-30 13:11:06,R3-Access,*E,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } state change to Backup DR
+2026-01-30 13:11:06,R3-Access,*F,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } change DR: 1.1.1.1 BDR: me
+2026-01-30 13:11:06,R3-Access,*10,2026-01-30 12:56:39,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: TwoWay } state change to ExStart
+2026-01-30 13:11:06,R3-Access,*11,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: ExStart } negotiation done
+2026-01-30 13:11:06,R3-Access,*12,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: ExStart } state change to Exchange
+2026-01-30 13:11:06,R3-Access,*13,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Exchange } exchange lsdb size 1
+2026-01-30 13:11:06,R3-Access,*14,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Exchange } exchange done
+2026-01-30 13:11:06,R3-Access,*15,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Exchange } state change to Loading
+2026-01-30 13:11:06,R3-Access,*16,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Loading } loading done
+2026-01-30 13:11:06,R3-Access,*17,2026-01-30 12:56:40,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.10%ether2 } neighbor { router-id: 1.1.1.1 state: Loading } state change to Full
+2026-01-30 13:11:06,R3-Access,*18,2026-01-30 12:56:41,"interface,info","ether3 link up (speed 1G, full duplex)"
+2026-01-30 13:11:06,R3-Access,*19,2026-01-30 12:56:41,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } created
+2026-01-30 13:11:06,R3-Access,*1A,2026-01-30 12:56:41,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } state change to Waiting
+2026-01-30 13:11:06,R3-Access,*1B,2026-01-30 12:56:44,"interface,info","ether4 link up (speed 1G, full duplex)"
+2026-01-30 13:11:06,R3-Access,*1C,2026-01-30 12:56:45,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 192.168.100.1%ether4 } created
+2026-01-30 13:11:06,R3-Access,*1D,2026-01-30 12:56:45,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 192.168.100.1%ether4 } state change to Waiting
+2026-01-30 13:11:06,R3-Access,*1E,2026-01-30 12:56:48,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: Down } state change to Init
+2026-01-30 13:11:06,R3-Access,*1F,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: Init } state change to TwoWay
+2026-01-30 13:11:06,R3-Access,*20,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor election
+2026-01-30 13:11:06,R3-Access,*21,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } state change to Backup DR
+2026-01-30 13:11:06,R3-Access,*22,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } change DR: 2.2.2.2 BDR: me
+2026-01-30 13:11:06,R3-Access,*23,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: TwoWay } state change to ExStart
+2026-01-30 13:11:06,R3-Access,*24,2026-01-30 12:56:51,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: ExStart } state change to ExStart
+2026-01-30 13:11:06,R3-Access,*25,2026-01-30 12:56:52,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: ExStart } negotiation done
+2026-01-30 13:11:06,R3-Access,*26,2026-01-30 12:56:52,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: ExStart } state change to Exchange
+2026-01-30 13:11:06,R3-Access,*27,2026-01-30 12:56:52,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: Exchange } exchange lsdb size 5
+2026-01-30 13:11:06,R3-Access,*28,2026-01-30 12:56:52,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: Exchange } exchange done
+2026-01-30 13:11:06,R3-Access,*29,2026-01-30 12:56:52,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 10.10.10.6%ether3 } neighbor { router-id: 2.2.2.2 state: Exchange } state change to Full
+2026-01-30 13:11:06,R3-Access,*2A,2026-01-30 12:57:15,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 3.3.3.3%loopback } neighbor election
+2026-01-30 13:11:06,R3-Access,*2B,2026-01-30 12:57:15,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 3.3.3.3%loopback } state change to DR
+2026-01-30 13:11:06,R3-Access,*2C,2026-01-30 12:57:15,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 3.3.3.3%loopback } change DR: me
+2026-01-30 13:11:06,R3-Access,*2D,2026-01-30 12:57:25,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 192.168.100.1%ether4 } neighbor election
+2026-01-30 13:11:06,R3-Access,*2E,2026-01-30 12:57:25,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 192.168.100.1%ether4 } state change to DR
+2026-01-30 13:11:06,R3-Access,*2F,2026-01-30 12:57:25,"route,ospf,info",ospf-1 { version: 2 router-id: 3.3.3.3 } area-0 { 0.0.0.0 } interface { broadcast 192.168.100.1%ether4 } change DR: me
+2026-01-30 13:11:06,R3-Access,*30,2026-01-30 13:11:04,"system,info,account",user admin logged in from 192.168.153.130 via rest-api
+2026-01-30 13:11:06,R3-Access,*31,2026-01-30 13:11:04,"system,info,account",user admin logged in via api
+2026-01-30 13:13:30,R2-Dist,*2F,2026-01-30 13:13:24,"interface,info","ether5 link up (speed 1G, full duplex)"
+2026-01-30 13:13:30,R2-Dist,*30,2026-01-30 13:13:25,"interface,warning",ether4: bridge RX looped packet - MAC 0c:63:9e:9b:00:04 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:13:35,R2-Dist,*31,2026-01-30 13:13:30,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:13:41,R2-Dist,*32,2026-01-30 13:13:35,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:13:47,R2-Dist,*33,2026-01-30 13:13:40,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:13:52,R2-Dist,*34,2026-01-30 13:13:45,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:13:52,R2-Dist,*35,2026-01-30 13:13:50,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:13:58,R2-Dist,*36,2026-01-30 13:13:56,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:14:04,R2-Dist,*37,2026-01-30 13:14:01,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:14:11,R2-Dist,*38,2026-01-30 13:14:06,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:14:17,R2-Dist,*39,2026-01-30 13:14:11,"interface,warning",ether4: bridge RX looped packet - MAC 0c:63:9e:9b:00:04 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:14:23,R2-Dist,*3A,2026-01-30 13:14:16,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:14:23,R2-Dist,*3B,2026-01-30 13:14:21,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:14:29,R2-Dist,*3C,2026-01-30 13:14:26,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:14:36,R2-Dist,*3D,2026-01-30 13:14:31,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:14:43,R2-Dist,*3E,2026-01-30 13:14:36,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:14:43,R2-Dist,*3F,2026-01-30 13:14:41,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:14:50,R2-Dist,*40,2026-01-30 13:14:46,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:14:57,R2-Dist,*41,2026-01-30 13:14:51,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:15:05,R2-Dist,*42,2026-01-30 13:14:56,"interface,warning",ether4: bridge RX looped packet - MAC 0c:63:9e:9b:00:04 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:15:05,R2-Dist,*43,2026-01-30 13:15:01,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:15:13,R2-Dist,*44,2026-01-30 13:15:06,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:15:20,R2-Dist,*45,2026-01-30 13:15:11,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:15:20,R2-Dist,*46,2026-01-30 13:15:16,"interface,warning",ether4: bridge RX looped packet - MAC 0c:63:9e:9b:00:04 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:15:25,R2-Dist,*47,2026-01-30 13:15:21,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:15:25,R2-Dist,*48,2026-01-30 13:15:23,"interface,info",ether5 link down
+2026-01-30 13:18:28,R2-Dist,*49,2026-01-30 13:18:23,"interface,info","ether5 link up (speed 1G, full duplex)"
+2026-01-30 13:18:28,R2-Dist,*4A,2026-01-30 13:18:26,"interface,warning",ether4: bridge RX looped packet - MAC 0c:63:9e:9b:00:04 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:18:34,R2-Dist,*4B,2026-01-30 13:18:31,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:18:39,R2-Dist,*4C,2026-01-30 13:18:36,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:18:45,R2-Dist,*4D,2026-01-30 13:18:41,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:18:51,R2-Dist,*4E,2026-01-30 13:18:46,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:18:58,R2-Dist,*4F,2026-01-30 13:18:51,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:04,R2-Dist,*50,2026-01-30 13:18:56,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:19:04,R2-Dist,*51,2026-01-30 13:19:01,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:10,R2-Dist,*52,2026-01-30 13:19:06,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:19:17,R2-Dist,*53,2026-01-30 13:19:11,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:24,R2-Dist,*54,2026-01-30 13:19:16,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:24,R2-Dist,*55,2026-01-30 13:19:21,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:19:30,R2-Dist,*56,2026-01-30 13:19:26,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:19:37,R2-Dist,*57,2026-01-30 13:19:31,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:45,R2-Dist,*58,2026-01-30 13:19:36,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:45,R2-Dist,*59,2026-01-30 13:19:41,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:19:53,R2-Dist,*5A,2026-01-30 13:19:46,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:20:01,R2-Dist,*5B,2026-01-30 13:19:51,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:20:01,R2-Dist,*5C,2026-01-30 13:19:56,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:20:09,R2-Dist,*5D,2026-01-30 13:20:01,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:20:17,R2-Dist,*5E,2026-01-30 13:20:07,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:20:17,R2-Dist,*5F,2026-01-30 13:20:12,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> ff:ff:ff:ff:ff:ff ETHERTYPE 0x0800 IP UDP 0.0.0.0:5678 -> 255.255.255.255:5678
+2026-01-30 13:20:23,R2-Dist,*60,2026-01-30 13:20:16,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:20:23,R2-Dist,*61,2026-01-30 13:20:22,"interface,warning",ether5: bridge RX looped packet - MAC 0c:63:9e:9b:00:03 -> 01:00:0c:cc:cc:cc ETHERTYPE 0x0004
+2026-01-30 13:20:29,R2-Dist,*62,2026-01-30 13:20:22,"interface,info",ether5 link down
+2026-01-30 13:21:07,R1-Core,*33,2026-01-30 13:21:03,"system,info,account",user admin logged out from 192.168.153.130 via rest-api
+2026-01-30 13:21:07,R1-Core,*34,2026-01-30 13:21:03,"system,info,account",user admin logged out via api
+2026-01-30 13:21:07,R1-Core,*35,2026-01-30 13:21:05,"system,info,account",user admin logged in from 192.168.153.130 via rest-api
+2026-01-30 13:21:07,R1-Core,*36,2026-01-30 13:21:05,"system,info,account",user admin logged in via api
+2026-01-30 13:21:07,R2-Dist,*63,2026-01-30 13:21:03,"system,info,account",user admin logged out from 192.168.153.130 via rest-api
+2026-01-30 13:21:07,R2-Dist,*64,2026-01-30 13:21:03,"system,info,account",user admin logged out via api
+2026-01-30 13:21:07,R2-Dist,*65,2026-01-30 13:21:05,"system,info,account",user admin logged in from 192.168.153.130 via rest-api
+2026-01-30 13:21:07,R2-Dist,*66,2026-01-30 13:21:05,"system,info,account",user admin logged in via api
+2026-01-30 13:21:07,R3-Access,*32,2026-01-30 13:21:04,"system,info,account",user admin logged out from 192.168.153.130 via rest-api
+2026-01-30 13:21:07,R3-Access,*33,2026-01-30 13:21:04,"system,info,account",user admin logged out via api
+2026-01-30 13:21:07,R3-Access,*34,2026-01-30 13:21:06,"system,info,account",user admin logged in from 192.168.153.130 via rest-api
+2026-01-30 13:21:07,R3-Access,*35,2026-01-30 13:21:06,"system,info,account",user admin logged in via api

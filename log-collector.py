@@ -207,7 +207,7 @@ def main():
             print(f"-- {status}  [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
             status_idx += 1
 
-            time.sleep(5)
+            time.sleep(5) # Delay antar polling
     except KeyboardInterrupt:
         print("\n[INFO] Stop requested by user (Ctrl+C). Exiting gracefully.")
     except Exception as e:
