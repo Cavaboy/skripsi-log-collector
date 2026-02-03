@@ -1,27 +1,26 @@
 import streamlit as st
 import pandas as pd
 import re
+import time
+import os
 import ast
 
 # ==========================================
 # 1. KONFIGURASI HALAMAN
 # ==========================================
 st.set_page_config(
-    page_title="Dashboard Deteksi Anomali Jaringan",
+    page_title="Real-Time Network Sentinel",
     page_icon="🛡️",
     layout="wide"
 )
 
-# Judul dan Deskripsi
-st.title("🛡️ Network Anomaly Detection System")
-st.markdown("Sistem deteksi dini berbasis **FP-Growth Algorithm** untuk Router Mikrotik.")
+st.title("🛡️ Network Anomaly Detection System (Live)")
+st.markdown("Sistem deteksi dini berbasis **FP-Growth Algorithm** secara Real-Time.")
 st.markdown("---")
 
 # ==========================================
-# 2. FUNGSI-FUNGSI PENTING (BACKEND)
+# 2. FUNGSI BACKEND (SAMA SEPERTI SEBELUMNYA)
 # ==========================================
-
-# Fungsi Cleaning (Harus SAMA PERSIS dengan saat Training)
 def clean_text(text):
     if not isinstance(text, str): return set()
     text = text.lower()
@@ -30,94 +29,119 @@ def clean_text(text):
     words = text.split()
     return set([w for w in words if w not in stopwords and len(w) > 2])
 
-# Load Rules dari File CSV (Hasil Jupyter Notebook)
 @st.cache_data
 def load_rules():
     try:
-        # Ganti nama file ini sesuai output Jupyter Notebook Anda
         rules = pd.read_csv("Hasil_Rules_Skripsi.csv") 
-        # Ubah string "frozenset({'a', 'b'})" kembali menjadi set Python
         rules['antecedents'] = rules['antecedents'].apply(lambda x: set(list(eval(x))))
-        rules['consequents'] = rules['consequents'].apply(lambda x: list(eval(x))[0]) # Ambil labelnya saja
+        rules['consequents'] = rules['consequents'].apply(lambda x: list(eval(x))[0])
         return rules
     except FileNotFoundError:
         return None
 
-# Fungsi Deteksi (Otak AI)
 def detect_anomaly(log_line, rules_df):
     cleaned_items = clean_text(log_line)
     matches = []
-    
-    # Cek setiap rule, apakah item rule ada di dalam log barusan?
     for index, row in rules_df.iterrows():
         rule_items = row['antecedents']
         if rule_items.issubset(cleaned_items):
-            matches.append({
-                'Diagnosis': row['consequents'],
-                'Confidence': row['confidence'],
-                'Rule': str(rule_items)
-            })
+            matches.append({'Diagnosis': row['consequents'], 'Confidence': row['confidence']})
     
     if matches:
-        # Ambil match dengan confidence tertinggi
-        best_match = max(matches, key=lambda x: x['Confidence'])
-        return best_match
+        return max(matches, key=lambda x: x['Confidence'])
     else:
-        return {'Diagnosis': 'NORMAL / UNKNOWN', 'Confidence': 0.0, 'Rule': '-'}
+        return {'Diagnosis': 'NORMAL / UNKNOWN', 'Confidence': 0.0}
 
 # ==========================================
-# 3. TAMPILAN UTAMA (FRONTEND)
+# 3. INTERFACE DASHBOARD LIVE
 # ==========================================
-
-# Load Database Rules
 rules_df = load_rules()
 
 if rules_df is None:
-    st.error("❌ File 'Hasil_Rules_Skripsi.csv' tidak ditemukan! Jalankan Jupyter Notebook dulu.")
+    st.error("❌ File Rules tidak ditemukan! Jalankan Jupyter Notebook dulu.")
+    st.stop()
+
+# Sidebar
+st.sidebar.header("🎛️ Control Panel")
+live_mode = st.sidebar.toggle("🔴 AKTIFKAN LIVE MONITORING", value=False)
+refresh_rate = st.sidebar.slider("Refresh Rate (detik)", 0.5, 5.0, 1.0)
+log_source = st.sidebar.text_input("Path File Log Live", "live_log.csv")
+
+# Placeholder untuk update konten secara dinamis
+status_container = st.empty()
+log_container = st.empty()
+
+# LOGIKA LIVE MONITORING
+if live_mode:
+    # Cek apakah file log ada
+    if not os.path.exists(log_source):
+        status_container.error(f"❌ File '{log_source}' belum ada. Jalankan script logger dulu!")
+    else:
+        # Loop terus menerus (seperti CCTV)
+        while True:
+            try:
+                # 1. Baca 10 baris terakhir dari file log (Real-time reading)
+                # on_bad_lines='skip' biar gak crash kalau ada baris log yang lagi ditulis setengah
+                df_live = pd.read_csv(log_source, on_bad_lines='skip').tail(10)
+                
+                # Ambil baris paling baru (terakhir)
+                if not df_live.empty:
+                    last_log = df_live.iloc[-1]
+                    raw_message = f"{last_log['topics']} {last_log['message']}"
+                    timestamp = last_log['time']
+                    
+                    # 2. Analisis dengan AI
+                    result = detect_anomaly(raw_message, rules_df)
+                    diagnosis = result['Diagnosis']
+                    conf = result['Confidence'] * 100
+
+                    # 3. Update Tampilan (Tanpa Refresh Halaman)
+                    with status_container.container():
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        
+                        with col1:
+                            st.metric("Last Update", timestamp.split(" ")[-1])
+                        
+                        with col2:
+                            if diagnosis == 'DDOS_ATTACK':
+                                st.error(f"⚠️ **TERDETEKSI: {diagnosis}**")
+                            elif diagnosis == 'BROADCAST_STORM':
+                                st.warning(f"⚠️ **TERDETEKSI: {diagnosis}**")
+                            elif 'FAILURE' in diagnosis:
+                                st.warning(f"🔧 **GANGGUAN: {diagnosis}**")
+                            else:
+                                st.success(f"✅ **STATUS: AMAN ({diagnosis})**")
+                        
+                        with col3:
+                            st.metric("AI Confidence", f"{conf:.1f}%")
+
+                    # Tampilkan Tabel Log Terkini
+                    with log_container.container():
+                        st.subheader("📜 Live Log Stream")
+                        # Kita bikin tabelnya ada highlight warna kalau bahaya
+                        def highlight_row(row):
+                            msg = str(row['message']) + str(row['topics'])
+                            if 'DDoS' in msg: return ['background-color: #ffcccc'] * len(row)
+                            if 'down' in msg: return ['background-color: #ffffcc'] * len(row)
+                            return [''] * len(row)
+
+                        st.dataframe(df_live[['time', 'source_router', 'message']].sort_index(ascending=False), use_container_width=True)
+
+                # 4. Tidur sebentar sebelum cek lagi
+                time.sleep(refresh_rate)
+                
+            except Exception as e:
+                status_container.error(f"Error membaca log: {e}")
+                time.sleep(1)
+
 else:
-    # Sidebar: Statistik Rules
-    st.sidebar.header("🧠 Knowledge Base")
-    st.sidebar.metric("Total Rules", len(rules_df))
-    st.sidebar.markdown("### Top Rules:")
-    st.sidebar.dataframe(rules_df[['antecedents', 'consequents', 'confidence']].head(5))
-
-    # Area Input Log
-    col1, col2 = st.columns([2, 1])
+    # Tampilan jika Live Mode Mati (Mode Manual)
+    st.info("👋 Sistem Standby. Aktifkan 'LIVE MONITORING' di sidebar untuk memulai pemindaian otomatis.")
     
+    col1, col2 = st.columns(2)
     with col1:
-        st.subheader("🔍 Log Analyzer Simulator")
-        input_log = st.text_area("Masukkan Baris Log Mikrotik di sini:", height=100, 
-                                 placeholder="Contoh: firewall,info DDoS_DETECTED input: in:ether1 proto ICMP...")
-        
-        if st.button("Analisis Log"):
-            if input_log:
-                result = detect_anomaly(input_log, rules_df)
-                
-                # Tampilkan Hasil
-                diagnosis = result['Diagnosis']
-                conf = result['Confidence']
-                
-                if diagnosis == 'DDOS_ATTACK':
-                    st.error(f"⚠️ DETEKSI BAHAYA: {diagnosis}")
-                elif diagnosis == 'BROADCAST_STORM':
-                    st.warning(f"⚠️ PERINGATAN: {diagnosis}")
-                elif 'FAILURE' in diagnosis:
-                    st.warning(f"🔧 GANGGUAN FISIK: {diagnosis}")
-                else:
-                    st.success(f"✅ STATUS: {diagnosis}")
-                
-                st.info(f"**Confidence Level:** {conf*100:.1f}%")
-                st.caption(f"Terdeteksi berdasarkan Rule: {result['Rule']}")
-                
-            else:
-                st.warning("Masukkan teks log terlebih dahulu.")
-
-    with col2:
-        st.subheader("📊 Live Status")
-        # Ini simulasi visual dashboard
-        st.metric(label="Status Jaringan", value="Monitoring", delta="Active")
-        st.progress(100)
-
-# Footer
-st.markdown("---")
-st.caption("Skripsi 2026 - Rancang Bangun Deteksi Anomali Jaringan")
+        st.subheader("Tes Manual")
+        test_log = st.text_area("Paste log di sini untuk tes manual:")
+        if st.button("Cek Log"):
+            res = detect_anomaly(test_log, rules_df)
+            st.write(f"Hasil: **{res['Diagnosis']}** (Conf: {res['Confidence']:.2f})")
