@@ -5,8 +5,8 @@ import os
 # Menggunakan format r'path' (raw string) agar backslash tidak dianggap karakter escape
 files = {
     "../Data/dataset_log_20260130_202136_dataset_normal.csv": "NORMAL",
-    "../Data/dataset_log_20260130_162450_upstream_failure.csv": "UPSTREAM_FAILURE",
-    "../Data/cleaned_linkfailure_20260206.csv": "LINK_FAILURE",
+    "../Data/fix_dataset_log_20260208_190350_upstream_failure.csv": "UPSTREAM_FAILURE",
+    "../Data/fix_dataset_log_20260208_175633_linkfailure.csv": "LINK_FAILURE",
     "../Data/dataset_log_20260130_131104_broadcast_storm.csv": "BROADCAST_STORM",
     "../Data/dataset_log_20260130_190223_DDOS_Attack.csv": "DDOS_ATTACK",
 }
@@ -53,7 +53,7 @@ if dfs:
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    output_file = os.path.join(output_dir, "Master_Dataset_Gabungan_v2.1.csv")
+    output_file = os.path.join(output_dir, "Master_Dataset_Gabungan_v2.2.csv")
     master_df.to_csv(output_file, index=False)
 
     print("\n" + "=" * 50)
