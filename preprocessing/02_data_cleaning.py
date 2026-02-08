@@ -5,8 +5,8 @@ import os
 # ==========================================
 # KONFIGURASI
 # ==========================================
-INPUT_FILE = "../Data/Master_Dataset_Gabungan.csv"
-OUTPUT_FILE = "../Data/Data_Siap_Mining_revisi.csv"
+INPUT_FILE = "../Data/Master_Dataset_Gabungan_v2.1.csv"
+OUTPUT_FILE = "../Data/Data_Siap_Mining_revisi_v2.1.csv"
 
 # 1. STOPWORDS (KATA SAMPAH)
 STOPWORDS = {
