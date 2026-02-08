@@ -1,0 +1,5 @@
+antecedents,consequents,confidence,lift,support
+"['neighbor', 'down']",['LINK_FAILURE'],0.52,7.72,0.05
+"['login', 'failed']",['SECURITY_ALERT'],0.45,2.1,0.1
+"['interface', 'flapping']",['LINK_FAILURE'],0.3,1.5,0.2
+"['looped', 'packet']",['BROADCAST_STORM'],0.85,6.5,0.08
