@@ -70,7 +70,8 @@ RECOMMENDATION_MAP = {
     },
 }
 
-# STOPWORDS diperketat untuk mengeliminasi noise OSPF
+# STOPWORDS: keep generic noise but ensure critical network keywords remain
+# (removed: 'ospf','neighbor','state','change','down','up','link')
 STOPWORDS = {
     "message",
     "info",
@@ -83,14 +84,12 @@ STOPWORDS = {
     "log",
     "time",
     "date",
-    "state",
-    "changed",
-    "ospf",
+    # network-state keywords removed from stopwords on purpose
+    # 'state', 'changed', 'ospf', 'neighbor', 'link', 'down', 'up' are kept for detection
     "ospf-1",
     "router-id",
     "area",
     "area-0",
-    "neighbor",
     "election",
     "version",
     "instance",
@@ -167,47 +166,63 @@ def process_chunk_aggregation(chunk_df, rules_df):
         prio = "NORMAL"
         evidence = set()
 
-        # PRIORITAS: DETEKSI POLA KHUSUS
-        if "internet connection lost" in msg.lower() or "8.8.8.8 rto" in msg.lower():
-            diag, prio, evidence = (
-                "UPSTREAM_FAILURE",
-                "FATAL",
-                {"internet", "lost", "ping"},
-            )
-        elif "looped packet" in msg.lower():
-            diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
-        elif "link down" in msg.lower() and "ether" in msg.lower():
-            diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
-        elif "ddos_detected" in msg.lower() or "flood" in msg.lower():
-            diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
+        # ASSOCIATION RULES FIRST (prioritize highest confidence)
+        best_rule = None
+        best_conf = -1.0
+        for _, rule in rules_df.iterrows():
+            # [FILTER WEAK RULES] Abaikan jika rule cuma 1 kata dan kata itu generic
+            if (
+                len(rule["antecedents"]) == 1
+                and list(rule["antecedents"])[0] in GENERIC_KEYWORDS
+            ):
+                continue
 
-        # ASSOCIATION RULES (Hanya jika belum terdeteksi pola di atas)
-        if not diag:
-            best_rule = None
-            for _, rule in rules_df.iterrows():
-                # [FILTER WEAK RULES] Abaikan jika rule cuma 1 kata dan kata itu generic
+            # Match if antecedents subset of cleaned tokens
+            if rule["antecedents"].issubset(tokens):
+                try:
+                    conf_val = float(rule.get("confidence", 0) or 0)
+                except Exception:
+                    conf_val = 0.0
+
+                # Prefer rule with higher confidence, tie-breaker: higher lift
                 if (
-                    len(rule["antecedents"]) == 1
-                    and list(rule["antecedents"])[0] in GENERIC_KEYWORDS
+                    best_rule is None
+                    or conf_val > best_conf
+                    or (
+                        conf_val == best_conf
+                        and rule.get("lift", 0) > best_rule.get("lift", 0)
+                    )
                 ):
-                    continue
+                    best_rule = rule
+                    best_conf = conf_val
 
-                if rule["antecedents"].issubset(tokens):
-                    # Cari rule dengan kriteria terpanjang (paling spesifik)
-                    if best_rule is None or len(rule["antecedents"]) > len(
-                        best_rule["antecedents"]
-                    ):
-                        best_rule = rule
+        if best_rule is not None:
+            diag = best_rule["final_diagnosis"]
+            evidence = best_rule["antecedents"]
+            lift_val = best_rule.get("lift", 0)
+            prio = (
+                "FATAL"
+                if lift_val >= 6.0
+                else "CRITICAL" if lift_val >= 3.0 else "WARNING"
+            )
 
-            if best_rule is not None:
-                diag = best_rule["final_diagnosis"]
-                evidence = best_rule["antecedents"]
-                lift_val = best_rule["lift"]
-                prio = (
-                    "FATAL"
-                    if lift_val >= 6.0
-                    else "CRITICAL" if lift_val >= 3.0 else "WARNING"
+        # FALLBACK: hardcoded keyword checks only if no rule matched
+        if not diag:
+            if (
+                "internet connection lost" in msg.lower()
+                or "8.8.8.8 rto" in msg.lower()
+            ):
+                diag, prio, evidence = (
+                    "UPSTREAM_FAILURE",
+                    "FATAL",
+                    {"internet", "lost", "ping"},
                 )
+            elif "looped packet" in msg.lower():
+                diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
+            elif "link down" in msg.lower() and "ether" in msg.lower():
+                diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
+            elif "ddos_detected" in msg.lower() or "flood" in msg.lower():
+                diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
 
         # AGGREGATION
         if diag:
@@ -242,23 +257,110 @@ def process_chunk_aggregation(chunk_df, rules_df):
 
 # STREAMLIT UI (Dashboard)
 st.title("Network Root Cause Analysis")
-uploaded_file = st.file_uploader("Upload Log File (CSV)", type=["csv"])
 
-if uploaded_file:
-    # Load Rules
-    rules_df = pd.read_csv("Data/rules/Rules_Best_S0.02_C0.3.csv")
-    rules_df = rules_df.rename(
+# Live Log Checking Toggle
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.subheader("Log Source")
+with col2:
+    enable_live_log = st.checkbox("Live Log Checking", value=False)
+
+if enable_live_log:
+    st.info("Live Log Checking enabled - monitoring live_log.csv for real-time updates")
+
+uploaded_file = (
+    st.file_uploader("Upload Log File (CSV)", type=["csv"])
+    if not enable_live_log
+    else None
+)
+
+if uploaded_file or enable_live_log:
+    # Determine the data source
+    if enable_live_log:
+        # Live log mode: read from live_log.csv
+        live_log_path = "live_log.csv"
+        if not os.path.exists(live_log_path):
+            st.error("live_log.csv not found. Please ensure log collector is running.")
+        else:
+            # Add auto-refresh for live monitoring
+            import time as time_module
+
+            # Initialize session state for live log tracking
+            if "live_log_state" not in st.session_state:
+                st.session_state["live_log_state"] = {
+                    "last_check": time_module.time(),
+                    "last_row_count": 0,
+                }
+
+            # Manual refresh button for live mode
+            col_refresh, col_auto = st.columns([1, 3])
+            with col_refresh:
+                if st.button("Refresh Now"):
+                    st.rerun()
+            with col_auto:
+                st.info("Live monitoring active - auto-refreshes to show new logs")
+
+            data_source = live_log_path
+            is_live_mode = True
+    else:
+        # File upload mode
+        data_source = uploaded_file
+        is_live_mode = False
+    # Load Rules: combine mining output and curated dashboard rules so UPSTREAM rules are included
+    rules_path_auto = "Data/rules/Rules_Best_S0.02_C0.3.csv"
+    rules_path_cur = "Data/rules/dashboard_data.csv"
+
+    df_auto = pd.read_csv(rules_path_auto, low_memory=False)
+    # df_auto is expected to have columns: antecedents, consequents, confidence, lift
+
+    df_cur = pd.read_csv(rules_path_cur, low_memory=False)
+    # df_cur has headers in Indonesian: 'Root Cause (Gejala)', 'Impact (Akibat)', 'Confidence (%)', 'Lift Ratio'
+    df_cur = df_cur.rename(
         columns={
             "Root Cause (Gejala)": "antecedents",
             "Impact (Akibat)": "consequents",
+            "Confidence (%)": "confidence",
             "Lift Ratio": "lift",
         }
     )
 
-    # Pre-parse rules
+    # Normalize antecedents parsing: some files store lists ([...]) while others are comma-separated strings
+    def parse_antecedents(x):
+        if pd.isna(x):
+            return set()
+        if isinstance(x, (list, set)):
+            return set(x)
+        s = str(x).strip()
+        try:
+            if s.startswith("["):
+                return set(ast.literal_eval(s))
+        except Exception:
+            pass
+        # else split by comma
+        parts = [p.strip() for p in s.split(",") if p.strip()]
+        return set(parts)
+
+    # Apply parsing and normalize both dataframes
+    df_auto = df_auto.copy()
+    df_auto["antecedents_parsed"] = df_auto["antecedents"].apply(parse_antecedents)
+    df_cur = df_cur.copy()
+    df_cur["antecedents_parsed"] = df_cur["antecedents"].apply(parse_antecedents)
+
+    # unify columns: replace original antecedents with parsed sets to avoid duplicate column names
+    df_auto = df_auto.copy()
+    df_auto["antecedents"] = df_auto["antecedents_parsed"]
+    df_auto.drop(columns=["antecedents_parsed"], inplace=True)
+
+    df_cur = df_cur.copy()
+    df_cur["antecedents"] = df_cur["antecedents_parsed"]
+    df_cur.drop(columns=["antecedents_parsed"], inplace=True)
+
+    rules_df = pd.concat([df_auto, df_cur], ignore_index=True, sort=False)
+
+    # Pre-parse rules: map consequents to final diagnosis and remove stopwords from antecedents
     rules_df["final_diagnosis"] = rules_df["consequents"].apply(map_diagnosis)
     rules_df["antecedents"] = rules_df["antecedents"].apply(
-        lambda x: set(ast.literal_eval(x)) - STOPWORDS
+        lambda x: set(x) - STOPWORDS
     )
     rules_df = rules_df[rules_df["antecedents"].map(len) > 0].dropna(
         subset=["final_diagnosis"]
@@ -273,17 +375,18 @@ if uploaded_file:
                 status_text = st.empty()
 
                 st.session_state["issues"] = {}
-                chunks = pd.read_csv(uploaded_file, chunksize=1000)
+
+                # Tentukan sumber data
+                if is_live_mode:
+                    csv_source = data_source
+                else:
+                    csv_source = data_source
 
                 # Hitung total chunks untuk progress bar
-                uploaded_file.seek(0)
-                total_chunks = sum(
-                    1 for _ in pd.read_csv(uploaded_file, chunksize=1000)
-                )
-                uploaded_file.seek(0)
+                total_chunks = sum(1 for _ in pd.read_csv(csv_source, chunksize=500))
 
                 current_chunk = 0
-                for chunk in pd.read_csv(uploaded_file, chunksize=1000):
+                for chunk in pd.read_csv(csv_source, chunksize=500):
                     current_chunk += 1
                     progress = min(current_chunk / total_chunks, 1.0)
                     progress_bar.progress(progress)
@@ -299,13 +402,11 @@ if uploaded_file:
         # Display Metrics
         m1, m2, m3 = st.columns(3)
 
-        # Filter DDoS berdasarkan threshold - hanya include jika count >= DDOS_THRESHOLD_COUNT
+        # Filter DDoS berdasarkan threshold (rule-based, tidak ditampilkan)
         filtered_issues = {}
-        filtered_out_ddos = 0
         for diag, data in st.session_state["issues"].items():
             if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
-                # Skip DDoS jika jumlah kejadian kurang dari threshold
-                filtered_out_ddos = data["count"]
+                # DDoS dihitung tapi tidak ditampilkan (rule-based filtering)
                 continue
             filtered_issues[diag] = data
 
@@ -318,12 +419,20 @@ if uploaded_file:
                 if d["priority"] in ["FATAL", "CRITICAL"]
             ),
         )
-        if filtered_out_ddos > 0:
-            m3.metric(
-                "DDoS Minor Events (Filtered)",
-                filtered_out_ddos,
-                delta=f"Below {DDOS_THRESHOLD_COUNT} threshold",
-            )
+
+        # Live mode: display last check time and total log count
+        if is_live_mode:
+            try:
+                total_logs = len(pd.read_csv(data_source))
+                last_update = (
+                    pd.read_csv(data_source)["fetched_at"].max()
+                    if "fetched_at" in pd.read_csv(data_source).columns
+                    else "N/A"
+                )
+                m3.metric("Total Logs (Live)", total_logs)
+                st.caption(f"Last Update: {last_update}")
+            except Exception as e:
+                m3.metric("Total Logs (Live)", "Error", help=str(e))
 
         # TABEL EVENT SUMMARY
         st.divider()
@@ -344,36 +453,18 @@ if uploaded_file:
 
         if event_data:
             event_df = pd.DataFrame(event_data)
-            st.dataframe(event_df, use_container_width=True, hide_index=True)
+            st.dataframe(event_df, width="stretch", hide_index=True)
         else:
             st.info("No anomalies detected in the uploaded logs.")
 
-        # TABEL DETAIL EVENT LOGS
-        st.subheader("All Event Logs")
-        all_logs = []
-        for diag, data in filtered_issues.items():
-            for log in data["logs"]:
-                all_logs.append(
-                    {
-                        "Timestamp": log["Timestamp"],
-                        "Router": log["Router"],
-                        "Anomaly": diag,
-                        "Message": log["Message"],
-                    }
-                )
-
-        if all_logs:
-            logs_df = pd.DataFrame(all_logs)
-            st.dataframe(logs_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No event logs available.")
-
         st.divider()
 
-        # Display Cards
+        # Display Cards (DDoS tidak ditampilkan - rule-based filtering hanya)
         for diag, data in sorted(
             filtered_issues.items(), key=lambda x: x[1]["priority"]
         ):
+            if diag == "DDoS":
+                continue
             info = RECOMMENDATION_MAP.get(
                 diag, {"title": diag, "desc": "", "actions": []}
             )
@@ -399,3 +490,55 @@ if uploaded_file:
                 for a in info["actions"]:
                     st.write(f"- {a}")
                 st.dataframe(pd.DataFrame(data["logs"]))
+
+        # TABEL DETAIL EVENT LOGS - Grouped by diagnosis type (moved below cards)
+        st.divider()
+        st.subheader("All Event Logs")
+
+        # Organize logs by diagnosis type
+        if filtered_issues:
+            for diag in sorted(filtered_issues.keys()):
+                data = filtered_issues[diag]
+                if data["logs"]:
+                    info = RECOMMENDATION_MAP.get(
+                        diag, {"title": diag, "desc": "", "actions": []}
+                    )
+                    st.subheader(f"{info['title']}")
+                    logs = [
+                        {
+                            "Timestamp": log["Timestamp"],
+                            "Router": log["Router"],
+                            "Message": log["Message"],
+                        }
+                        for log in data["logs"]
+                    ]
+                    logs_df = pd.DataFrame(logs)
+                    st.dataframe(logs_df, width="stretch", hide_index=True)
+        else:
+            st.info("No event logs available.")
+
+# Auto-refresh timer for live log mode
+if enable_live_log and "issues" in st.session_state:
+    # Add auto-refresh button with countdown
+    st.divider()
+    col_timer, col_interval = st.columns([2, 1])
+    with col_timer:
+        st.caption("Live monitoring active - refreshing data...")
+    with col_interval:
+        refresh_interval = st.selectbox(
+            "Refresh Interval (seconds)",
+            [5, 10, 15, 30],
+            index=1,
+            label_visibility="collapsed",
+        )
+
+    # Implement auto-refresh using time
+    import time as time_mod
+
+    if "auto_refresh" not in st.session_state:
+        st.session_state["auto_refresh"] = time_mod.time()
+
+    current_time = time_mod.time()
+    if current_time - st.session_state["auto_refresh"] > refresh_interval:
+        st.session_state["auto_refresh"] = current_time
+        st.rerun()
