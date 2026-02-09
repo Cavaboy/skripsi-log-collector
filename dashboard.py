@@ -358,7 +358,7 @@ if uploaded_file or enable_live_log:
             # Refresh controls
             col_refresh, col_interval = st.columns([1, 3])
             with col_refresh:
-                if st.button("🔄 Refresh Now"):
+                if st.button("Refresh Now"):
                     st.session_state["live_log_state"][
                         "last_check"
                     ] = 0  # Force refresh
@@ -381,7 +381,7 @@ if uploaded_file or enable_live_log:
                 st.rerun()
 
             st.info(
-                f"✓ Live monitoring active - auto-refreshes every {auto_refresh_interval}s"
+                f"Live monitoring active - auto-refreshes every {auto_refresh_interval}s"
             )
 
             data_source = live_log_path
@@ -437,9 +437,9 @@ if uploaded_file or enable_live_log:
 
                 # Display live metrics
                 m1, m2, m3 = st.columns(3)
-                m1.metric("🔴 Anomalies Found", len(filtered_issues))
+                m1.metric("Anomalies Found", len(filtered_issues))
                 m2.metric(
-                    "⚠️ Critical Issues",
+                    "Critical Issues",
                     sum(
                         1
                         for d in filtered_issues.values()
@@ -467,7 +467,7 @@ if uploaded_file or enable_live_log:
                             "Count": data["count"],
                             "Priority": data["priority"],
                             "Last Seen": data["last_seen"],
-                            "Routers": ", ".join(data["routers"]),
+                            "Routers": ", ".join(str(r) for r in data["routers"]),
                         }
                     )
 
