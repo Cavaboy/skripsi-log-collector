@@ -398,7 +398,7 @@ if uploaded_file or enable_live_log:
         # Create containers for live streaming results
         progress_container = st.container()
         results_container = st.container()
-        
+
         with progress_container:
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -418,12 +418,14 @@ if uploaded_file or enable_live_log:
         for current_chunk, chunk in enumerate(chunks, 1):
             # Process this chunk
             process_chunk_aggregation(chunk, rules_df)
-            
+
             # Update progress
             progress = min(current_chunk / total_chunks, 1.0)
             progress_bar.progress(progress)
-            status_text.text(f"Processing chunk {current_chunk}/{total_chunks} ({len(chunk)} logs)")
-            
+            status_text.text(
+                f"Processing chunk {current_chunk}/{total_chunks} ({len(chunk)} logs)"
+            )
+
             # LIVE UPDATE: Show interim results while processing
             with results_container:
                 # Filter issues
@@ -471,14 +473,19 @@ if uploaded_file or enable_live_log:
 
                 if event_data:
                     event_df = pd.DataFrame(event_data)
-                    st.dataframe(event_df, width="stretch", hide_index=True, use_container_width=True)
+                    st.dataframe(
+                        event_df,
+                        width="stretch",
+                        hide_index=True,
+                        use_container_width=True,
+                    )
                 else:
                     st.info("No anomalies detected yet...")
 
         # Final completion
         progress_bar.progress(1.0)
         status_text.text("✅ Analysis Complete!")
-        
+
         # Add completion message
         st.success("✅ Live analysis completed! Displaying final results below.")
         st.divider()
