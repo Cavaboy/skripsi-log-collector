@@ -1,0 +1,15 @@
+[client]
+showSidebarNavigation = false
+
+[logger]
+level = "info"
+
+[server]
+# Listen on all network interfaces (0.0.0.0) agar bisa diakses dari host/mesin lain
+address = "0.0.0.0"
+# Default port
+port = 8501
+# Enable CORS untuk akses cross-origin jika diperlukan
+enableCORS = true
+# Headless mode = true (tidak buka browser otomatis)
+headless = true
