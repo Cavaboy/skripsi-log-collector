@@ -4,6 +4,7 @@ import ast
 import re
 import time
 import os
+from functools import lru_cache
 
 # KONFIGURASI HALAMAN & CSS
 st.set_page_config(
@@ -112,6 +113,67 @@ STOPWORDS = {
 }
 
 
+# ==== OPTIMIZATION: Cached CSV reading for live mode ====
+@st.cache_data(ttl=5)  # Cache for 5 seconds in live mode
+def read_live_log(file_path):
+    """Cache live log reads to reduce file I/O"""
+    return pd.read_csv(file_path)
+
+
+# ==== OPTIMIZATION: Cached rules loading for better performance ====
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_and_process_rules():
+    """Load and preprocess rules once, cache for performance"""
+    rules_path_auto = "Data/rules/Rules_Best_S0.02_C0.3.csv"
+    rules_path_cur = "Data/rules/dashboard_data.csv"
+
+    df_auto = pd.read_csv(rules_path_auto, low_memory=False)
+    df_cur = pd.read_csv(rules_path_cur, low_memory=False)
+
+    df_cur = df_cur.rename(
+        columns={
+            "Root Cause (Gejala)": "antecedents",
+            "Impact (Akibat)": "consequents",
+            "Confidence (%)": "confidence",
+            "Lift Ratio": "lift",
+        }
+    )
+
+    # Normalize antecedents parsing
+    def parse_antecedents(x):
+        if pd.isna(x):
+            return set()
+        if isinstance(x, (list, set)):
+            return set(x)
+        s = str(x).strip()
+        try:
+            if s.startswith("["):
+                return set(ast.literal_eval(s))
+        except Exception:
+            pass
+        parts = [p.strip() for p in s.split(",") if p.strip()]
+        return set(parts)
+
+    df_auto = df_auto.copy()
+    df_auto["antecedents"] = df_auto["antecedents"].apply(parse_antecedents)
+
+    df_cur = df_cur.copy()
+    df_cur["antecedents"] = df_cur["antecedents"].apply(parse_antecedents)
+
+    rules_df = pd.concat([df_auto, df_cur], ignore_index=True, sort=False)
+
+    # Pre-parse rules
+    rules_df["final_diagnosis"] = rules_df["consequents"].apply(map_diagnosis)
+    rules_df["antecedents"] = rules_df["antecedents"].apply(
+        lambda x: set(x) - STOPWORDS
+    )
+    rules_df = rules_df[rules_df["antecedents"].map(len) > 0].dropna(
+        subset=["final_diagnosis"]
+    )
+
+    return rules_df
+
+
 def clean_text(text):
     if not isinstance(text, str):
         return set()
@@ -139,24 +201,25 @@ def map_diagnosis(val):
     return None
 
 
-# CORE PROCESSING
+# CORE PROCESSING - Optimization: Move GENERIC_KEYWORDS outside function
+GENERIC_KEYWORDS = {
+    "interface",
+    "link",
+    "ethernet",
+    "port",
+    "0x0800",
+    "udp",
+    "admin",
+    "bridge",
+    "proto",
+    "icmp",
+    "type",
+    "code",
+}
+
+
 def process_chunk_aggregation(chunk_df, rules_df):
     matched_count = 0
-    # Kata kunci yang tidak boleh berdiri sendiri sebagai aturan
-    GENERIC_KEYWORDS = {
-        "interface",
-        "link",
-        "ethernet",
-        "port",
-        "0x0800",
-        "udp",
-        "admin",
-        "bridge",
-        "proto",
-        "icmp",
-        "type",
-        "code",
-    }
 
     for idx, row in chunk_df.iterrows():
         msg = str(row.get("message", ""))
@@ -282,7 +345,7 @@ if uploaded_file or enable_live_log:
         if not os.path.exists(live_log_path):
             st.error("live_log.csv not found. Please ensure log collector is running.")
         else:
-            # Add auto-refresh for live monitoring
+            # OPTIMIZATION: Better auto-refresh for live monitoring
             import time as time_module
 
             # Initialize session state for live log tracking
@@ -292,13 +355,34 @@ if uploaded_file or enable_live_log:
                     "last_row_count": 0,
                 }
 
-            # Manual refresh button for live mode
-            col_refresh, col_auto = st.columns([1, 3])
+            # Refresh controls
+            col_refresh, col_interval = st.columns([1, 3])
             with col_refresh:
-                if st.button("Refresh Now"):
+                if st.button("🔄 Refresh Now"):
+                    st.session_state["live_log_state"][
+                        "last_check"
+                    ] = 0  # Force refresh
                     st.rerun()
-            with col_auto:
-                st.info("Live monitoring active - auto-refreshes to show new logs")
+            with col_interval:
+                auto_refresh_interval = st.select_slider(
+                    "Auto-refresh interval (seconds)",
+                    options=[5, 10, 15, 30, 60],
+                    value=10,
+                    label_visibility="collapsed",
+                )
+                st.session_state["auto_refresh_interval"] = auto_refresh_interval
+
+            # Auto-refresh logic using st.session_state
+            current_time = time_module.time()
+            last_check = st.session_state["live_log_state"].get("last_check", 0)
+
+            if current_time - last_check >= auto_refresh_interval:
+                st.session_state["live_log_state"]["last_check"] = current_time
+                st.rerun()
+
+            st.info(
+                f"✓ Live monitoring active - auto-refreshes every {auto_refresh_interval}s"
+            )
 
             data_source = live_log_path
             is_live_mode = True
@@ -306,65 +390,9 @@ if uploaded_file or enable_live_log:
         # File upload mode
         data_source = uploaded_file
         is_live_mode = False
-    # Load Rules: combine mining output and curated dashboard rules so UPSTREAM rules are included
-    rules_path_auto = "Data/rules/Rules_Best_S0.02_C0.3.csv"
-    rules_path_cur = "Data/rules/dashboard_data.csv"
 
-    df_auto = pd.read_csv(rules_path_auto, low_memory=False)
-    # df_auto is expected to have columns: antecedents, consequents, confidence, lift
-
-    df_cur = pd.read_csv(rules_path_cur, low_memory=False)
-    # df_cur has headers in Indonesian: 'Root Cause (Gejala)', 'Impact (Akibat)', 'Confidence (%)', 'Lift Ratio'
-    df_cur = df_cur.rename(
-        columns={
-            "Root Cause (Gejala)": "antecedents",
-            "Impact (Akibat)": "consequents",
-            "Confidence (%)": "confidence",
-            "Lift Ratio": "lift",
-        }
-    )
-
-    # Normalize antecedents parsing: some files store lists ([...]) while others are comma-separated strings
-    def parse_antecedents(x):
-        if pd.isna(x):
-            return set()
-        if isinstance(x, (list, set)):
-            return set(x)
-        s = str(x).strip()
-        try:
-            if s.startswith("["):
-                return set(ast.literal_eval(s))
-        except Exception:
-            pass
-        # else split by comma
-        parts = [p.strip() for p in s.split(",") if p.strip()]
-        return set(parts)
-
-    # Apply parsing and normalize both dataframes
-    df_auto = df_auto.copy()
-    df_auto["antecedents_parsed"] = df_auto["antecedents"].apply(parse_antecedents)
-    df_cur = df_cur.copy()
-    df_cur["antecedents_parsed"] = df_cur["antecedents"].apply(parse_antecedents)
-
-    # unify columns: replace original antecedents with parsed sets to avoid duplicate column names
-    df_auto = df_auto.copy()
-    df_auto["antecedents"] = df_auto["antecedents_parsed"]
-    df_auto.drop(columns=["antecedents_parsed"], inplace=True)
-
-    df_cur = df_cur.copy()
-    df_cur["antecedents"] = df_cur["antecedents_parsed"]
-    df_cur.drop(columns=["antecedents_parsed"], inplace=True)
-
-    rules_df = pd.concat([df_auto, df_cur], ignore_index=True, sort=False)
-
-    # Pre-parse rules: map consequents to final diagnosis and remove stopwords from antecedents
-    rules_df["final_diagnosis"] = rules_df["consequents"].apply(map_diagnosis)
-    rules_df["antecedents"] = rules_df["antecedents"].apply(
-        lambda x: set(x) - STOPWORDS
-    )
-    rules_df = rules_df[rules_df["antecedents"].map(len) > 0].dropna(
-        subset=["final_diagnosis"]
-    )
+    # OPTIMIZATION: Use cached rules loading instead of reloading every time
+    rules_df = load_and_process_rules()
 
     if st.button("Start Analysis"):
         # Placeholder untuk loading indicator
@@ -376,18 +404,14 @@ if uploaded_file or enable_live_log:
 
                 st.session_state["issues"] = {}
 
-                # Tentukan sumber data
-                if is_live_mode:
-                    csv_source = data_source
-                else:
-                    csv_source = data_source
+                # OPTIMIZATION: Read CSV once instead of twice
+                csv_source = data_source if is_live_mode else data_source
 
-                # Hitung total chunks untuk progress bar
-                total_chunks = sum(1 for _ in pd.read_csv(csv_source, chunksize=500))
+                # Read all chunks and count at the same time
+                chunks = list(pd.read_csv(csv_source, chunksize=500))
+                total_chunks = len(chunks)
 
-                current_chunk = 0
-                for chunk in pd.read_csv(csv_source, chunksize=500):
-                    current_chunk += 1
+                for current_chunk, chunk in enumerate(chunks, 1):
                     progress = min(current_chunk / total_chunks, 1.0)
                     progress_bar.progress(progress)
                     status_text.text(f"Processing chunk {current_chunk}/{total_chunks}")
@@ -423,10 +447,12 @@ if uploaded_file or enable_live_log:
         # Live mode: display last check time and total log count
         if is_live_mode:
             try:
-                total_logs = len(pd.read_csv(data_source))
+                # OPTIMIZATION: Read CSV only once instead of 3 times
+                live_df = pd.read_csv(data_source)
+                total_logs = len(live_df)
                 last_update = (
-                    pd.read_csv(data_source)["fetched_at"].max()
-                    if "fetched_at" in pd.read_csv(data_source).columns
+                    live_df["fetched_at"].max()
+                    if "fetched_at" in live_df.columns
                     else "N/A"
                 )
                 m3.metric("Total Logs (Live)", total_logs)
