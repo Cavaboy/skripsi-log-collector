@@ -395,99 +395,105 @@ if uploaded_file or enable_live_log:
     rules_df = load_and_process_rules()
 
     if st.button("Start Analysis"):
-        # Placeholder untuk loading indicator
-        loading_container = st.container()
-        with loading_container:
-            with st.spinner("Analyzing logs... Please wait"):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
+        # Create containers for live streaming results
+        progress_container = st.container()
+        results_container = st.container()
+        
+        with progress_container:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            metrics_placeholder = st.empty()
 
-                st.session_state["issues"] = {}
+        st.session_state["issues"] = {}
 
-                # OPTIMIZATION: Read CSV once instead of twice
-                csv_source = data_source if is_live_mode else data_source
+        # OPTIMIZATION: Larger chunks for faster initial results + streaming
+        CHUNK_SIZE = 2000  # Increased from 500 for faster processing
+        csv_source = data_source
 
-                # Read all chunks and count at the same time
-                chunks = list(pd.read_csv(csv_source, chunksize=500))
-                total_chunks = len(chunks)
+        # Read chunks with larger size
+        chunks = list(pd.read_csv(csv_source, chunksize=CHUNK_SIZE))
+        total_chunks = len(chunks)
 
-                for current_chunk, chunk in enumerate(chunks, 1):
-                    progress = min(current_chunk / total_chunks, 1.0)
-                    progress_bar.progress(progress)
-                    status_text.text(f"Processing chunk {current_chunk}/{total_chunks}")
-                    process_chunk_aggregation(chunk, rules_df)
+        # Process chunks with LIVE result display
+        for current_chunk, chunk in enumerate(chunks, 1):
+            # Process this chunk
+            process_chunk_aggregation(chunk, rules_df)
+            
+            # Update progress
+            progress = min(current_chunk / total_chunks, 1.0)
+            progress_bar.progress(progress)
+            status_text.text(f"Processing chunk {current_chunk}/{total_chunks} ({len(chunk)} logs)")
+            
+            # LIVE UPDATE: Show interim results while processing
+            with results_container:
+                # Filter issues
+                filtered_issues = {}
+                for diag, data in st.session_state.get("issues", {}).items():
+                    if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
+                        continue
+                    filtered_issues[diag] = data
 
-                progress_bar.progress(1.0)
-                status_text.text("Analysis complete!")
-
-        # Hapus loading container
-        loading_container.empty()
-
-        # Display Metrics
-        m1, m2, m3 = st.columns(3)
-
-        # Filter DDoS berdasarkan threshold (rule-based, tidak ditampilkan)
-        filtered_issues = {}
-        for diag, data in st.session_state["issues"].items():
-            if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
-                # DDoS dihitung tapi tidak ditampilkan (rule-based filtering)
-                continue
-            filtered_issues[diag] = data
-
-        m1.metric("Anomalies Found", len(filtered_issues))
-        m2.metric(
-            "Critical Issues",
-            sum(
-                1
-                for d in filtered_issues.values()
-                if d["priority"] in ["FATAL", "CRITICAL"]
-            ),
-        )
-
-        # Live mode: display last check time and total log count
-        if is_live_mode:
-            try:
-                # OPTIMIZATION: Read CSV only once instead of 3 times
-                live_df = pd.read_csv(data_source)
-                total_logs = len(live_df)
-                last_update = (
-                    live_df["fetched_at"].max()
-                    if "fetched_at" in live_df.columns
-                    else "N/A"
+                # Display live metrics
+                m1, m2, m3 = st.columns(3)
+                m1.metric("🔴 Anomalies Found", len(filtered_issues))
+                m2.metric(
+                    "⚠️ Critical Issues",
+                    sum(
+                        1
+                        for d in filtered_issues.values()
+                        if d["priority"] in ["FATAL", "CRITICAL"]
+                    ),
                 )
-                m3.metric("Total Logs (Live)", total_logs)
-                st.caption(f"Last Update: {last_update}")
-            except Exception as e:
-                m3.metric("Total Logs (Live)", "Error", help=str(e))
 
-        # TABEL EVENT SUMMARY
+                if is_live_mode:
+                    try:
+                        live_df = pd.read_csv(data_source)
+                        total_logs = len(live_df)
+                        m3.metric("📊 Total Logs (Live)", total_logs)
+                    except:
+                        m3.metric("📊 Total Logs (Live)", "Processing...")
+                else:
+                    m3.metric("📋 Logs Processed", current_chunk * CHUNK_SIZE)
+
+                # Live Event Summary Table
+                st.write("**📈 Live Event Summary**")
+                event_data = []
+                for diag, data in filtered_issues.items():
+                    event_data.append(
+                        {
+                            "Anomaly Type": diag,
+                            "Count": data["count"],
+                            "Priority": data["priority"],
+                            "Last Seen": data["last_seen"],
+                            "Routers": ", ".join(data["routers"]),
+                        }
+                    )
+
+                if event_data:
+                    event_df = pd.DataFrame(event_data)
+                    st.dataframe(event_df, width="stretch", hide_index=True, use_container_width=True)
+                else:
+                    st.info("No anomalies detected yet...")
+
+        # Final completion
+        progress_bar.progress(1.0)
+        status_text.text("✅ Analysis Complete!")
+        
+        # Add completion message
+        st.success("✅ Live analysis completed! Displaying final results below.")
         st.divider()
-        st.subheader("Event Summary Table")
 
-        # Buat data untuk tabel
-        event_data = []
-        for diag, data in filtered_issues.items():
-            event_data.append(
-                {
-                    "Anomaly Type": diag,
-                    "Count": data["count"],
-                    "Priority": data["priority"],
-                    "Last Seen": data["last_seen"],
-                    "Routers": ", ".join(data["routers"]),
-                }
-            )
+        # Get final filtered issues for detailed display
+        final_filtered_issues = {}
+        for diag, data in st.session_state.get("issues", {}).items():
+            if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
+                continue
+            final_filtered_issues[diag] = data
 
-        if event_data:
-            event_df = pd.DataFrame(event_data)
-            st.dataframe(event_df, width="stretch", hide_index=True)
-        else:
-            st.info("No anomalies detected in the uploaded logs.")
-
-        st.divider()
-
-        # Display Cards (DDoS tidak ditampilkan - rule-based filtering hanya)
+        # Display detailed recommendation cards
+        st.subheader("🔍 Detailed Analysis & Recommendations")
         for diag, data in sorted(
-            filtered_issues.items(), key=lambda x: x[1]["priority"]
+            final_filtered_issues.items(), key=lambda x: x[1]["priority"]
         ):
             if diag == "DDoS":
                 continue
@@ -515,16 +521,17 @@ if uploaded_file or enable_live_log:
                 st.write("**Recommended Actions:**")
                 for a in info["actions"]:
                     st.write(f"- {a}")
-                st.dataframe(pd.DataFrame(data["logs"]))
+                if data["logs"]:
+                    st.dataframe(pd.DataFrame(data["logs"]))
 
-        # TABEL DETAIL EVENT LOGS - Grouped by diagnosis type (moved below cards)
+        # Final detailed logs table
         st.divider()
-        st.subheader("All Event Logs")
+        st.subheader("📋 All Event Logs")
 
         # Organize logs by diagnosis type
-        if filtered_issues:
-            for diag in sorted(filtered_issues.keys()):
-                data = filtered_issues[diag]
+        if final_filtered_issues:
+            for diag in sorted(final_filtered_issues.keys()):
+                data = final_filtered_issues[diag]
                 if data["logs"]:
                     info = RECOMMENDATION_MAP.get(
                         diag, {"title": diag, "desc": "", "actions": []}
