@@ -10,6 +10,6 @@ start "Live Log Collector" cmd /k "python live_log_collector.py"
 REM 2. Start the Dashboard in the current window
 echo [2/2] Launching Streamlit Dashboard...
 echo.
-streamlit run dashboard.py
+python -m streamlit run dashboard.py
 
 pause
