@@ -97,7 +97,9 @@ STOPWORDS = {
     "version",
     "instance",
     "created",
+    "created",
     "broadcast",
+    "loopback",
     "loopback",
     "dr",
     "bdr",
@@ -134,7 +136,23 @@ class RuleEngine:
             antecedents = rule["antecedents"]
             
             # [FILTER WEAK RULES] Abaikan jika rule cuma 1 kata dan kata itu generic
-            if len(antecedents) == 1 and list(antecedents)[0] in GENERIC_KEYWORDS:
+            # [FILTER WEAK RULES]
+            # 1. Abaikan jika rule cuma 1 kata dan kata itu generic ATAU nama interface
+            if len(antecedents) == 1:
+                token = list(antecedents)[0]
+                if token in GENERIC_KEYWORDS or re.match(r"^ether\d+$", token):
+                    continue
+            
+            # 2. Abaikan jika rule terdiri dari beberapa kata TAPI semuanya generic words
+            # Contoh: {'interface', 'change'}, {'neighbor', 'interface'}, {'interface', 'ether2'}
+            is_all_generic = True
+            for token in antecedents:
+                # Token dianggap generic jika ada di GENERIC_KEYWORDS ATAU formatnya etherX
+                if token not in GENERIC_KEYWORDS and not re.match(r"^ether\d+$", token):
+                    is_all_generic = False
+                    break
+            
+            if is_all_generic:
                 continue
                 
             rule_obj = {
@@ -226,6 +244,7 @@ def load_and_process_rules():
     rules_df["antecedents"] = rules_df["antecedents"].apply(
         lambda x: set(x) - STOPWORDS
     )
+    
     rules_df = rules_df[rules_df["antecedents"].map(len) > 0].dropna(
         subset=["final_diagnosis"]
     )
@@ -275,6 +294,16 @@ GENERIC_KEYWORDS = {
     "icmp",
     "type",
     "code",
+    "mac",
+    "src",
+    "dst",
+    "ospf",
+    "state",
+    "neighbor",
+    "change",
+    "exstart",
+    "logged",
+    "user",
 }
 
 
