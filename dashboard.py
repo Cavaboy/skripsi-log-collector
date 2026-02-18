@@ -5,6 +5,8 @@ import re
 import time
 import os
 from functools import lru_cache
+from collections import defaultdict
+from typing import Dict, List, DefaultDict, Any
 
 # KONFIGURASI HALAMAN & CSS
 st.set_page_config(
@@ -120,8 +122,65 @@ def read_live_log(file_path):
     return pd.read_csv(file_path)
 
 
+# ==== OPTIMIZATION: RuleEngine Class for O(1) matching ====
+class RuleEngine:
+    def __init__(self, rules_df):
+        self.rules: List[Dict[str, Any]] = []
+        # Mapping token -> list of rule indices
+        self.token_map: DefaultDict[str, List[int]] = defaultdict(list)
+        
+        # Pre-process rules into list of dicts and build index
+        for idx, rule in rules_df.iterrows():
+            antecedents = rule["antecedents"]
+            
+            # [FILTER WEAK RULES] Abaikan jika rule cuma 1 kata dan kata itu generic
+            if len(antecedents) == 1 and list(antecedents)[0] in GENERIC_KEYWORDS:
+                continue
+                
+            rule_obj = {
+                "antecedents": antecedents,
+                "confidence": float(rule.get("confidence", 0) or 0),
+                "lift": float(rule.get("lift", 0) or 0),
+                "final_diagnosis": rule["final_diagnosis"],
+                "idx": len(self.rules)
+            }
+            self.rules.append(rule_obj)
+            
+            for token in antecedents:
+                self.token_map[token].append(int(rule_obj["idx"])) # type: ignore
+
+    def match(self, tokens):
+        """Find best matching rule for a set of tokens using inverted index"""
+        candidate_counts: DefaultDict[int, int] = defaultdict(int) # type: ignore
+        relevant_rules_indices = set()
+        
+        # 1. Gather candidates
+        for token in tokens:
+            if token in self.token_map:
+                for rule_idx in self.token_map[str(token)]: # type: ignore
+                    candidate_counts[rule_idx] += 1 # type: ignore
+                    relevant_rules_indices.add(rule_idx)
+        
+        # 2. Check candidates
+        best_rule = None
+        best_conf = -1.0
+        
+        for rule_idx in relevant_rules_indices:
+            rule = self.rules[rule_idx]
+            # Optimization: Only check if ALL antecedents are present
+            if candidate_counts[rule_idx] == len(rule["antecedents"]): # type: ignore
+                 # Strict subset check passed (assuming unique tokens in antecedents)
+                 conf_val = rule["confidence"]
+                 
+                 # Prefer rule with higher confidence, tie-breaker: higher lift
+                 if conf_val > best_conf or (conf_val == best_conf and rule["lift"] > (best_rule["lift"] if best_rule else 0)): # type: ignore
+                     best_rule = rule
+                     best_conf = conf_val
+                     
+        return best_rule
+
 # ==== OPTIMIZATION: Cached rules loading for better performance ====
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_resource(ttl=300)  # Changed to cache_resource for non-data objects
 def load_and_process_rules():
     """Load and preprocess rules once, cache for performance"""
     rules_path_auto = "Data/rules/Rules_Best_S0.02_C0.3.csv"
@@ -171,7 +230,8 @@ def load_and_process_rules():
         subset=["final_diagnosis"]
     )
 
-    return rules_df
+    # Initialize Engine
+    return RuleEngine(rules_df) # type: ignore
 
 
 def clean_text(text):
@@ -218,7 +278,7 @@ GENERIC_KEYWORDS = {
 }
 
 
-def process_chunk_aggregation(chunk_df, rules_df):
+def process_chunk_aggregation(chunk_df, rule_engine):
     matched_count = 0
 
     for idx, row in chunk_df.iterrows():
@@ -229,35 +289,8 @@ def process_chunk_aggregation(chunk_df, rules_df):
         prio = "NORMAL"
         evidence = set()
 
-        # ASSOCIATION RULES FIRST (prioritize highest confidence)
-        best_rule = None
-        best_conf = -1.0
-        for _, rule in rules_df.iterrows():
-            # [FILTER WEAK RULES] Abaikan jika rule cuma 1 kata dan kata itu generic
-            if (
-                len(rule["antecedents"]) == 1
-                and list(rule["antecedents"])[0] in GENERIC_KEYWORDS
-            ):
-                continue
-
-            # Match if antecedents subset of cleaned tokens
-            if rule["antecedents"].issubset(tokens):
-                try:
-                    conf_val = float(rule.get("confidence", 0) or 0)
-                except Exception:
-                    conf_val = 0.0
-
-                # Prefer rule with higher confidence, tie-breaker: higher lift
-                if (
-                    best_rule is None
-                    or conf_val > best_conf
-                    or (
-                        conf_val == best_conf
-                        and rule.get("lift", 0) > best_rule.get("lift", 0)
-                    )
-                ):
-                    best_rule = rule
-                    best_conf = conf_val
+        # SUPER FAST ENGINE MATCHING
+        best_rule = rule_engine.match(tokens)
 
         if best_rule is not None:
             diag = best_rule["final_diagnosis"]
@@ -495,17 +528,17 @@ if uploaded_file or enable_live_log:
         for diag, data in st.session_state.get("issues", {}).items():
             if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
                 continue
-            final_filtered_issues[diag] = data
+            final_filtered_issues[diag] = data # type: ignore
 
         # Display detailed recommendation cards
         st.subheader("🔍 Detailed Analysis & Recommendations")
         for diag, data in sorted(
-            final_filtered_issues.items(), key=lambda x: x[1]["priority"]
+            final_filtered_issues.items(), key=lambda x: x[1]["priority"] # type: ignore
         ):
             if diag == "DDoS":
                 continue
             info = RECOMMENDATION_MAP.get(
-                diag, {"title": diag, "desc": "", "actions": []}
+                diag, {"title": diag, "desc": "", "actions": []} # type: ignore
             )
             style = f"status-{data['priority'].lower()}"
 
@@ -541,7 +574,7 @@ if uploaded_file or enable_live_log:
                 data = final_filtered_issues[diag]
                 if data["logs"]:
                     info = RECOMMENDATION_MAP.get(
-                        diag, {"title": diag, "desc": "", "actions": []}
+                        diag, {"title": diag, "desc": "", "actions": []} # type: ignore
                     )
                     st.subheader(f"{info['title']}")
                     logs = [
