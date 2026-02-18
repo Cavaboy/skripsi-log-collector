@@ -383,6 +383,12 @@ def process_chunk_aggregation(chunk_df, rule_engine):
 # STREAMLIT UI (Dashboard)
 st.title("Network Root Cause Analysis")
 
+# Initialize Session State
+if "analysis_active" not in st.session_state:
+    st.session_state["analysis_active"] = False
+if "issues" not in st.session_state:
+    st.session_state["issues"] = {}
+
 # Live Log Checking Toggle
 col1, col2 = st.columns([3, 1])
 with col1:
@@ -399,31 +405,75 @@ uploaded_file = (
     else None
 )
 
+# Helper for Safe File Operations
+def safe_read_csv(path, retries=3):
+    """Attempt to read CSV with retries for Windows file locking"""
+    for i in range(retries):
+        try:
+            return pd.read_csv(path)
+        except PermissionError:
+            time.sleep(0.1)
+        except pd.errors.EmptyDataError:
+             return pd.DataFrame(columns=["fetched_at","source_router","log_id","time","topics","message"])
+        except Exception:
+            return pd.DataFrame(columns=["fetched_at","source_router","log_id","time","topics","message"])
+    return pd.DataFrame(columns=["fetched_at","source_router","log_id","time","topics","message"]) # Return empty on fail
+
 if uploaded_file or enable_live_log:
     # Determine the data source
     if enable_live_log:
-        # Live log mode: read from live_log.csv
         live_log_path = "live_log.csv"
+        
+        # --- CLEAR DATA BUTTON ---
+        if st.button("🗑️ Clear Live Data"):
+            try:
+                # Create empty dataframe with headers
+                dummy_df = pd.DataFrame(
+                    columns=[
+                        "fetched_at",
+                        "source_router",
+                        "log_id",
+                        "time",
+                        "topics",
+                        "message",
+                    ]
+                )
+                # Write with retry
+                success = False
+                for _ in range(5):
+                    try:
+                        dummy_df.to_csv(live_log_path, index=False)
+                        success = True
+                        break
+                    except PermissionError:
+                        time.sleep(0.1)
+                
+                if success:
+                    st.session_state["issues"] = {}
+                    st.toast("Live data cleared!", icon="🗑️")
+                    time.sleep(0.5)
+                    st.rerun()
+                else:
+                    st.error("Could not clear file - it might be locked by the collector.")
+            except Exception as e:
+                st.error(f"Error clearing data: {e}")
+
         if not os.path.exists(live_log_path):
             st.error("live_log.csv not found. Please ensure log collector is running.")
+            data_source = None
+            is_live_mode = False
         else:
-            # OPTIMIZATION: Better auto-refresh for live monitoring
-            import time as time_module
-
             # Initialize session state for live log tracking
+            import time as time_module
             if "live_log_state" not in st.session_state:
                 st.session_state["live_log_state"] = {
                     "last_check": time_module.time(),
-                    "last_row_count": 0,
                 }
 
             # Refresh controls
             col_refresh, col_interval = st.columns([1, 3])
             with col_refresh:
                 if st.button("Refresh Now"):
-                    st.session_state["live_log_state"][
-                        "last_check"
-                    ] = 0  # Force refresh
                     st.rerun()
             with col_interval:
                 auto_refresh_interval = st.select_slider(
@@ -431,20 +481,19 @@ if uploaded_file or enable_live_log:
                     options=[5, 10, 15, 30, 60],
                     value=10,
                     label_visibility="collapsed",
+                    key="refresh_interval_slider" # Key for state persistence
                 )
-                st.session_state["auto_refresh_interval"] = auto_refresh_interval
 
-            # Auto-refresh logic using st.session_state
+            # Auto-refresh logic
             current_time = time_module.time()
             last_check = st.session_state["live_log_state"].get("last_check", 0)
 
-            if current_time - last_check >= auto_refresh_interval:
-                st.session_state["live_log_state"]["last_check"] = current_time
-                st.rerun()
-
-            st.info(
-                f"Live monitoring active - auto-refreshes every {auto_refresh_interval}s"
-            )
+            # Only auto-refresh if analysis is active (to avoid useless refreshes when idle)
+            if st.session_state["analysis_active"]:
+                 if current_time - last_check >= auto_refresh_interval:
+                    st.session_state["live_log_state"]["last_check"] = current_time
+                    st.rerun()
+                 st.info(f"Live monitoring active - auto-refreshes every {auto_refresh_interval}s")
 
             data_source = live_log_path
             is_live_mode = True
@@ -456,100 +505,124 @@ if uploaded_file or enable_live_log:
     # OPTIMIZATION: Use cached rules loading instead of reloading every time
     rules_df = load_and_process_rules()
 
-    if st.button("Start Analysis"):
+    # --- START/STOP ANALYSIS TOGGLE ---
+    col_start, col_status = st.columns([1, 4])
+    with col_start:
+        if not st.session_state["analysis_active"]:
+            if st.button("▶ Start Analysis", type="primary"):
+                st.session_state["analysis_active"] = True
+                st.rerun()
+        else:
+             if st.button("⏹ Stop Analysis", type="secondary"):
+                st.session_state["analysis_active"] = False
+                st.rerun()
+    with col_status:
+        if st.session_state["analysis_active"]:
+            st.success("Analysis Running")
+
+    # Only run analysis if active or if we simply have the file (legacy behavior preserved partly)
+    # Actually, for live mode, we STRICTLY follow the toggle. For static file, user expects immediate result?
+    # Let's unify: Start Analysis required for both to avoid confusion.
+    
+    if st.session_state["analysis_active"] and data_source:
         # Create containers for live streaming results
         progress_container = st.container()
         results_container = st.container()
 
-        with progress_container:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            metrics_placeholder = st.empty()
-
         st.session_state["issues"] = {}
 
         # OPTIMIZATION: Larger chunks for faster initial results + streaming
-        CHUNK_SIZE = 2000  # Increased from 500 for faster processing
-        csv_source = data_source
+        CHUNK_SIZE = 2000
+        
+        # Read Data
+        if is_live_mode:
+            try:
+                # Use safe read for live file
+                full_df = safe_read_csv(data_source)
+                # No chunking for live file usually because it's small (500 rows)
+                # But to keep logic consistent, we can just process it all at once
+                chunks = [full_df]
+                total_chunks = 1
+            except Exception as e:
+                st.error(f"Error reading live log: {e}")
+                chunks = []
+                total_chunks = 0
+        else:
+             # Standard CSV read for uploaded file
+             try:
+                chunks = list(pd.read_csv(data_source, chunksize=CHUNK_SIZE))
+                total_chunks = len(chunks)
+             except Exception:
+                 chunks = []
+                 total_chunks = 0
 
-        # Read chunks with larger size
-        chunks = list(pd.read_csv(csv_source, chunksize=CHUNK_SIZE))
-        total_chunks = len(chunks)
 
-        # Process chunks with LIVE result display
+        # Process chunks
+        with progress_container:
+             if total_chunks > 0:
+                pass # Silent processing for live mode to avoid flickering progress bars
+             else:
+                st.warning("No data to process")
+
         for current_chunk, chunk in enumerate(chunks, 1):
+            if chunk.empty:
+                continue
+                
             # Process this chunk
-            process_chunk_aggregation(chunk, rules_df)
+            count = process_chunk_aggregation(chunk, rules_df)
 
-            # Update progress
-            progress = min(current_chunk / total_chunks, 1.0)
-            progress_bar.progress(progress)
-            status_text.text(
-                f"Processing chunk {current_chunk}/{total_chunks} ({len(chunk)} logs)"
+        # LIVE UPDATE: Show results
+        with results_container:
+            # Filter issues
+            filtered_issues = {}
+            for diag, data in st.session_state.get("issues", {}).items():
+                if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
+                    continue
+                filtered_issues[diag] = data
+
+            # Display live metrics
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Anomalies Found", len(filtered_issues))
+            m2.metric(
+                "Critical Issues",
+                sum(
+                    1
+                    for d in filtered_issues.values()
+                    if d["priority"] in ["FATAL", "CRITICAL"]
+                ),
             )
 
-            # LIVE UPDATE: Show interim results while processing
-            with results_container:
-                # Filter issues
-                filtered_issues = {}
-                for diag, data in st.session_state.get("issues", {}).items():
-                    if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
-                        continue
-                    filtered_issues[diag] = data
+            if is_live_mode: # Safe read for total count
+                 m3.metric("📊 Total Logs (Live)", len(chunks[0]) if chunks else 0)
+            else:
+                 m3.metric("📋 Logs Processed", "Complete") # Simplified for static
 
-                # Display live metrics
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Anomalies Found", len(filtered_issues))
-                m2.metric(
-                    "Critical Issues",
-                    sum(
-                        1
-                        for d in filtered_issues.values()
-                        if d["priority"] in ["FATAL", "CRITICAL"]
-                    ),
+            # Live Event Summary Table
+            st.write("**📈 Live Event Summary**")
+            event_data = []
+            for diag, data in filtered_issues.items():
+                event_data.append(
+                    {
+                        "Anomaly Type": diag,
+                        "Count": data["count"],
+                        "Priority": data["priority"],
+                        "Last Seen": data["last_seen"],
+                        "Routers": ", ".join(str(r) for r in data["routers"]),
+                    }
                 )
 
-                if is_live_mode:
-                    try:
-                        live_df = pd.read_csv(data_source)
-                        total_logs = len(live_df)
-                        m3.metric("📊 Total Logs (Live)", total_logs)
-                    except:
-                        m3.metric("📊 Total Logs (Live)", "Processing...")
-                else:
-                    m3.metric("📋 Logs Processed", current_chunk * CHUNK_SIZE)
+            if event_data:
+                event_df = pd.DataFrame(event_data)
+                st.dataframe(
+                    event_df,
+                    width="stretch",
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            else:
+                st.info("No anomalies detected...")
 
-                # Live Event Summary Table
-                st.write("**📈 Live Event Summary**")
-                event_data = []
-                for diag, data in filtered_issues.items():
-                    event_data.append(
-                        {
-                            "Anomaly Type": diag,
-                            "Count": data["count"],
-                            "Priority": data["priority"],
-                            "Last Seen": data["last_seen"],
-                            "Routers": ", ".join(str(r) for r in data["routers"]),
-                        }
-                    )
-
-                if event_data:
-                    event_df = pd.DataFrame(event_data)
-                    st.dataframe(
-                        event_df,
-                        width="stretch",
-                        hide_index=True,
-                        use_container_width=True,
-                    )
-                else:
-                    st.info("No anomalies detected yet...")
-
-        # Final completion
-        progress_bar.progress(1.0)
-        status_text.text("✅ Analysis Complete!")
-
-        # Add completion message
-        st.success("✅ Live analysis completed! Displaying final results below.")
+        
         st.divider()
 
         # Get final filtered issues for detailed display
@@ -557,90 +630,46 @@ if uploaded_file or enable_live_log:
         for diag, data in st.session_state.get("issues", {}).items():
             if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
                 continue
-            final_filtered_issues[diag] = data # type: ignore
+            final_filtered_issues[diag] = data
 
         # Display detailed recommendation cards
         st.subheader("🔍 Detailed Analysis & Recommendations")
-        for diag, data in sorted(
-            final_filtered_issues.items(), key=lambda x: x[1]["priority"] # type: ignore
-        ):
-            if diag == "DDoS":
-                continue
-            info = RECOMMENDATION_MAP.get(
-                diag, {"title": diag, "desc": "", "actions": []} # type: ignore
-            )
-            style = f"status-{data['priority'].lower()}"
+        
+        if final_filtered_issues:
+            for diag, data in sorted(
+                final_filtered_issues.items(), key=lambda x: x[1]["priority"]
+            ):
+                if diag == "DDoS":
+                    continue
+                info = RECOMMENDATION_MAP.get(
+                    diag, {"title": diag, "desc": "", "actions": []}
+                )
+                style = f"status-{data['priority'].lower()}"
 
-            st.markdown(
-                f"""
-            <div class="card {style}">
-                <div style="display:flex; justify-content:space-between;">
-                    <span style="font-weight:bold; font-size:1.1em;">{info['title']}</span>
-                    <span class="evidence-tag" style="background:black; color:white;">{data['priority']}</span>
+                st.markdown(
+                    f"""
+                <div class="card {style}">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="font-weight:bold; font-size:1.1em;">{info['title']}</span>
+                        <span class="evidence-tag" style="background:black; color:white;">{data['priority']}</span>
+                    </div>
+                    <div style="font-size:0.9em; margin: 10px 0;">{info['desc']}</div>
+                    <div style="font-size:0.8em; margin-top:5px;"><b>Key Symptoms:</b> {" ".join([f"<span class='evidence-tag'>{e}</span>" for e in data['evidence']])}</div>
                 </div>
-                <div style="font-size:0.9em; margin: 10px 0;">{info['desc']}</div>
-                <div style="font-size:0.8em;"><b>Events:</b> {data['count']} | <b>Last Seen:</b> {data['last_seen']}</div>
-                <div style="font-size:0.8em; margin-top:5px;"><b>Key Symptoms:</b> {" ".join([f"<span class='evidence-tag'>{e}</span>" for e in data['evidence']])}</div>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
+                """,
+                    unsafe_allow_html=True,
+                )
 
-            with st.expander("View Details"):
-                st.write("**Recommended Actions:**")
-                for a in info["actions"]:
-                    st.write(f"- {a}")
-                if data["logs"]:
-                    st.dataframe(pd.DataFrame(data["logs"]))
+                with st.expander(f"View Details: {info['title']}"):
+                    st.write("**Recommended Actions:**")
+                    for a in info["actions"]:
+                        st.write(f"- {a}")
+                    
+                    if data["logs"]:
+                         st.write(f"**Recent Logs ({len(data['logs'])}):**")
+                         st.dataframe(pd.DataFrame(data["logs"]))
+        else:
+             st.write("No issues requiring recommendations.")
 
         # Final detailed logs table
         st.divider()
-        st.subheader("📋 All Event Logs")
-
-        # Organize logs by diagnosis type
-        if final_filtered_issues:
-            for diag in sorted(final_filtered_issues.keys()):
-                data = final_filtered_issues[diag]
-                if data["logs"]:
-                    info = RECOMMENDATION_MAP.get(
-                        diag, {"title": diag, "desc": "", "actions": []} # type: ignore
-                    )
-                    st.subheader(f"{info['title']}")
-                    logs = [
-                        {
-                            "Timestamp": log["Timestamp"],
-                            "Router": log["Router"],
-                            "Message": log["Message"],
-                        }
-                        for log in data["logs"]
-                    ]
-                    logs_df = pd.DataFrame(logs)
-                    st.dataframe(logs_df, width="stretch", hide_index=True)
-        else:
-            st.info("No event logs available.")
-
-# Auto-refresh timer for live log mode
-if enable_live_log and "issues" in st.session_state:
-    # Add auto-refresh button with countdown
-    st.divider()
-    col_timer, col_interval = st.columns([2, 1])
-    with col_timer:
-        st.caption("Live monitoring active - refreshing data...")
-    with col_interval:
-        refresh_interval = st.selectbox(
-            "Refresh Interval (seconds)",
-            [5, 10, 15, 30],
-            index=1,
-            label_visibility="collapsed",
-        )
-
-    # Implement auto-refresh using time
-    import time as time_mod
-
-    if "auto_refresh" not in st.session_state:
-        st.session_state["auto_refresh"] = time_mod.time()
-
-    current_time = time_mod.time()
-    if current_time - st.session_state["auto_refresh"] > refresh_interval:
-        st.session_state["auto_refresh"] = current_time
-        st.rerun()

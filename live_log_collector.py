@@ -39,25 +39,46 @@ def write_live_csv(df, csv_file_path, max_rows=500):
     """
     Menulis DataFrame ke live CSV dengan limit rows.
     Menjaga hanya N baris terakhir untuk efisiensi live monitoring.
+    Menggunakan retry mechanism untuk mengatasi file locking on Windows.
     """
-    try:
-        # Jika file sudah ada, baca dan append
-        if os.path.isfile(csv_file_path):
-            existing_df = pd.read_csv(csv_file_path)
-            combined_df = pd.concat([existing_df, df], ignore_index=True)
-        else:
-            combined_df = df
+    retries = 5
+    for i in range(retries):
+        try:
+            # Jika file sudah ada, baca dan append
+            if os.path.isfile(csv_file_path):
+                try:
+                    existing_df = pd.read_csv(csv_file_path)
+                    combined_df = pd.concat([existing_df, df], ignore_index=True)
+                except pd.errors.EmptyDataError:
+                     # Handle case where file exists but is empty (e.g., mid-wipe)
+                     combined_df = df
+                except Exception:
+                     # If read fails, just start fresh with new data? 
+                     # Risk: losing data if read failed due to lock but write succeeds?
+                     # Better to retry.
+                     raise PermissionError("Read failed due to lock")
+            else:
+                combined_df = df
 
-        # Keep hanya last N rows (untuk live mode, jangan terlalu besar)
-        if len(combined_df) > max_rows:
-            combined_df = combined_df.tail(max_rows).reset_index(drop=True)
+            # Keep hanya last N rows (untuk live mode, jangan terlalu besar)
+            if len(combined_df) > max_rows:
+                combined_df = combined_df.tail(max_rows).reset_index(drop=True)
 
-        # Tulis ulang seluruh file (replace mode)
-        combined_df.to_csv(csv_file_path, index=False, encoding="utf-8")
-        return True
-    except Exception as e:
-        print(f"[ERROR] Gagal menulis ke {csv_file_path}: {e}")
-        return False
+            # Tulis ulang seluruh file (replace mode)
+            combined_df.to_csv(csv_file_path, index=False, encoding="utf-8")
+            return True
+            
+        except PermissionError:
+            if i < retries - 1:
+                time.sleep(0.2)  # Wait a bit before retry
+                continue
+            else:
+                print(f"[WARN] Gagal menulis ke {csv_file_path} (Locked) setelah {retries} percobaan.")
+                return False
+        except Exception as e:
+            print(f"[ERROR] Gagal menulis ke {csv_file_path}: {e}")
+            return False
+    return False
 
 
 def fetch_logs(router):
