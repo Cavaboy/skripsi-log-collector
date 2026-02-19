@@ -593,7 +593,25 @@ if uploaded_file or enable_live_log:
             )
 
             if is_live_mode: # Safe read for total count
-                 m3.metric("📊 Total Logs (Live)", len(chunks[0]) if chunks else 0)
+                 # Calculate new logs since last check
+                 current_log_count = len(chunks[0]) if chunks else 0
+                 
+                 # Get last known count from state
+                 last_count = st.session_state["live_log_state"].get("last_count", 0)
+                 new_logs_count = current_log_count - last_count
+                 
+                 # Handle reset case (if log file was cleared)
+                 if new_logs_count < 0:
+                     new_logs_count = current_log_count
+                 
+                 # Update state with current count for next run
+                 st.session_state["live_log_state"]["last_count"] = current_log_count
+
+                 m3.metric(
+                    "📊 Total Logs (Live)", 
+                    current_log_count,
+                    delta=f"{new_logs_count} new" if new_logs_count > 0 else None
+                 )
             else:
                  m3.metric("📋 Logs Processed", "Complete") # Simplified for static
 

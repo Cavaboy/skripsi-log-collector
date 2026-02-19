@@ -17,7 +17,7 @@ ROUTERS = [
 USER = "admin"
 PASS = "admin"
 LIVE_LOG_FILE = "live_log.csv"  # Simpan di direktori saat ini
-MAX_LIVE_LOG_ROWS = 500  # Jumlah maksimal log yang disimpan (untuk efisiensi)
+MAX_LIVE_LOG_ROWS = 2000  # Jumlah maksimal log yang disimpan (untuk efisiensi)
 POLL_INTERVAL = 5  # Detik
 
 # State untuk menyimpan ID log terakhir (Hex) untuk setiap router
