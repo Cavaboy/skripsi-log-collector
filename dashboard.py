@@ -410,8 +410,8 @@ def safe_read_csv(path, retries=5):
     """Attempt to read CSV with retries for Windows file locking"""
     for i in range(retries):
         try:
-            return pd.read_csv(path)
-        except PermissionError:
+            return pd.read_csv(path, on_bad_lines='skip') # Skip bad lines if partial write
+        except (PermissionError, pd.errors.ParserError):
             time.sleep(0.1)
         except pd.errors.EmptyDataError:
              return None
@@ -424,12 +424,79 @@ if uploaded_file or enable_live_log:
     if enable_live_log:
         live_log_path = "live_log.csv"
         
-        # ... (CLEAR DATA BUTTON logic remains same, skipping for brevity in replacement if unchanged) ... 
-        
-        # ... (Auto-refresh logic remains same) ...
+        # --- CLEAR DATA BUTTON ---
+        if st.button("🗑️ Clear Live Data"):
+            try:
+                # Create empty dataframe with headers
+                dummy_df = pd.DataFrame(
+                    columns=[
+                        "fetched_at",
+                        "source_router",
+                        "log_id",
+                        "time",
+                        "topics",
+                        "message",
+                    ]
+                )
+                # Write with retry
+                success = False
+                for _ in range(5):
+                    try:
+                        dummy_df.to_csv(live_log_path, index=False)
+                        success = True
+                        break
+                    except PermissionError:
+                        time.sleep(0.1)
+                
+                if success:
+                    st.session_state["issues"] = {}
+                    st.toast("Live data cleared!", icon="🗑️")
+                    time.sleep(0.5)
+                    st.rerun()
+                else:
+                    st.error("Could not clear file - it might be locked by the collector.")
+            except Exception as e:
+                st.error(f"Error clearing data: {e}")
 
-        data_source = live_log_path
-        is_live_mode = True
+        if not os.path.exists(live_log_path):
+            st.error("live_log.csv not found. Please ensure log collector is running.")
+            data_source = None
+            is_live_mode = False
+        else:
+            # Initialize session state for live log tracking
+            import time as time_module
+            if "live_log_state" not in st.session_state:
+                st.session_state["live_log_state"] = {
+                    "last_check": time_module.time(),
+                }
+
+            # Refresh controls
+            col_refresh, col_interval = st.columns([1, 3])
+            with col_refresh:
+                if st.button("Refresh Now"):
+                    st.rerun()
+            with col_interval:
+                auto_refresh_interval = st.select_slider(
+                    "Auto-refresh interval (seconds)",
+                    options=[5, 10, 15, 30, 60],
+                    value=10,
+                    label_visibility="collapsed",
+                    key="refresh_interval_slider" # Key for state persistence
+                )
+
+            # Auto-refresh logic
+            current_time = time_module.time()
+            last_check = st.session_state["live_log_state"].get("last_check", 0)
+
+            # Only auto-refresh if analysis is active (to avoid useless refreshes when idle)
+            if st.session_state["analysis_active"]:
+                 if current_time - last_check >= auto_refresh_interval:
+                    st.session_state["live_log_state"]["last_check"] = current_time
+                    st.rerun()
+                 st.info(f"Live monitoring active - auto-refreshes every {auto_refresh_interval}s")
+
+            data_source = live_log_path
+            is_live_mode = True
     else:
         # File upload mode
         data_source = uploaded_file
@@ -438,7 +505,20 @@ if uploaded_file or enable_live_log:
     # OPTIMIZATION: Use cached rules loading instead of reloading every time
     rules_df = load_and_process_rules()
 
-    # ... (Start/Stop Analysis Toggle remains same) ...
+    # --- START/STOP ANALYSIS TOGGLE ---
+    col_start, col_status = st.columns([1, 4])
+    with col_start:
+        if not st.session_state["analysis_active"]:
+            if st.button("▶ Start Analysis", type="primary"):
+                st.session_state["analysis_active"] = True
+                st.rerun()
+        else:
+             if st.button("⏹ Stop Analysis", type="secondary"):
+                st.session_state["analysis_active"] = False
+                st.rerun()
+    with col_status:
+        if st.session_state["analysis_active"]:
+            st.success("Analysis Running")
     
     if st.session_state["analysis_active"] and data_source:
         # Create containers for live streaming results

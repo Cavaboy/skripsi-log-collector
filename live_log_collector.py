@@ -40,6 +40,7 @@ def write_live_csv(df, csv_file_path, max_rows=500):
     Menulis DataFrame ke live CSV dengan limit rows.
     Menjaga hanya N baris terakhir untuk efisiensi live monitoring.
     Menggunakan retry mechanism untuk mengatasi file locking on Windows.
+    Returns: (success, total_rows_in_file)
     """
     retries = 5
     for i in range(retries):
@@ -50,12 +51,10 @@ def write_live_csv(df, csv_file_path, max_rows=500):
                     existing_df = pd.read_csv(csv_file_path)
                     combined_df = pd.concat([existing_df, df], ignore_index=True)
                 except pd.errors.EmptyDataError:
-                     # Handle case where file exists but is empty (e.g., mid-wipe)
+                     # Handle case where file exists but is empty
                      combined_df = df
                 except Exception:
-                     # If read fails, just start fresh with new data? 
-                     # Risk: losing data if read failed due to lock but write succeeds?
-                     # Better to retry.
+                     # If read fails, raise to trigger retry
                      raise PermissionError("Read failed due to lock")
             else:
                 combined_df = df
@@ -66,7 +65,7 @@ def write_live_csv(df, csv_file_path, max_rows=500):
 
             # Tulis ulang seluruh file (replace mode)
             combined_df.to_csv(csv_file_path, index=False, encoding="utf-8")
-            return True
+            return True, len(combined_df)
             
         except PermissionError:
             if i < retries - 1:
@@ -74,11 +73,11 @@ def write_live_csv(df, csv_file_path, max_rows=500):
                 continue
             else:
                 print(f"[WARN] Gagal menulis ke {csv_file_path} (Locked) setelah {retries} percobaan.")
-                return False
+                return False, 0
         except Exception as e:
             print(f"[ERROR] Gagal menulis ke {csv_file_path}: {e}")
-            return False
-    return False
+            return False, 0
+    return False, 0
 
 
 def fetch_logs(router):
@@ -179,20 +178,26 @@ def main():
     print(f"[INFO] Max live log rows: {MAX_LIVE_LOG_ROWS}")
     print(f"[INFO] Poll interval: {POLL_INTERVAL} detik")
 
-    # Inisialisasi header jika file belum ada
-    if not os.path.isfile(LIVE_LOG_FILE):
-        dummy_df = pd.DataFrame(
-            columns=[
-                "fetched_at",
-                "source_router",
-                "log_id",
-                "time",
-                "topics",
-                "message",
-            ]
-        )
+    # === [FEATURE] WIPE ON STARTUP ===
+    # Always create fresh file with header on startup
+    dummy_df = pd.DataFrame(
+        columns=[
+            "fetched_at",
+            "source_router",
+            "log_id",
+            "time",
+            "topics",
+            "message",
+        ]
+    )
+    try:
         dummy_df.to_csv(LIVE_LOG_FILE, index=False, encoding="utf-8")
-        print(f"[INFO] File {LIVE_LOG_FILE} dibuat dengan header.")
+        print(f"[INFO] File {LIVE_LOG_FILE} has been wiped and initialized with header.")
+    except PermissionError:
+        print(f"[WARN] Could not wipe {LIVE_LOG_FILE} (Locked). Will append instead.")
+    except Exception as e:
+         print(f"[ERROR] initializing file: {e}")
+
 
     status_messages = [
         "Listening for new logs...",
@@ -217,12 +222,10 @@ def main():
             # Tulis ke live CSV jika ada log baru
             if all_new_logs:
                 df = pd.DataFrame(all_new_logs)
-                success = write_live_csv(df, LIVE_LOG_FILE, max_rows=MAX_LIVE_LOG_ROWS)
+                success, total_curr_rows = write_live_csv(df, LIVE_LOG_FILE, max_rows=MAX_LIVE_LOG_ROWS)
                 if success:
-                    # Hitung total rows untuk info
-                    total_rows = len(pd.read_csv(LIVE_LOG_FILE))
                     print(
-                        f"--> [OK] Total {len(df)} baris baru ditambahkan. Total dalam live_log.csv: {total_rows}"
+                        f"--> [OK] Total {len(df)} baris baru ditambahkan. Total dalam live_log.csv: {total_curr_rows}"
                     )
                 else:
                     print(f"--> [WARN] Gagal menulis ke live_log.csv")
