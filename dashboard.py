@@ -15,7 +15,7 @@ st.set_page_config(
 
 # KONFIGURASI THRESHOLD
 DDOS_THRESHOLD_COUNT = (
-    100  # Jumlah minimum kejadian DDoS untuk dianggap sebagai serangan (bukan noise)
+    20  # Jumlah minimum kejadian DDoS untuk dianggap sebagai serangan (bukan noise)
 )
 
 st.markdown(
@@ -118,7 +118,7 @@ STOPWORDS = {
 
 
 # ==== OPTIMIZATION: Cached CSV reading for live mode ====
-@st.cache_data(ttl=5)  # Cache for 5 seconds in live mode
+# @st.cache_data(ttl=5)  # Cache removed for instant live updates
 def read_live_log(file_path):
     """Cache live log reads to reduce file I/O"""
     return pd.read_csv(file_path)
@@ -639,8 +639,8 @@ if uploaded_file or enable_live_log:
             for diag, data in sorted(
                 final_filtered_issues.items(), key=lambda x: x[1]["priority"]
             ):
-                if diag == "DDoS":
-                    continue
+                # if diag == "DDoS":
+                #    continue
                 info = RECOMMENDATION_MAP.get(
                     diag, {"title": diag, "desc": "", "actions": []}
                 )
