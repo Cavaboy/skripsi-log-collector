@@ -241,6 +241,23 @@ def main():
 
     except KeyboardInterrupt:
         print("\n[INFO] Stop requested by user (Ctrl+C). Exiting gracefully.")
+        # === [FEATURE] WIPE ON EXIT ===
+        try:
+             # Re-create empty dataframe to overwrite file
+             dummy_df = pd.DataFrame(
+                columns=[
+                    "fetched_at",
+                    "source_router",
+                    "log_id",
+                    "time",
+                    "topics",
+                    "message",
+                ]
+            )
+             dummy_df.to_csv(LIVE_LOG_FILE, index=False, encoding="utf-8")
+             print(f"[INFO] File {LIVE_LOG_FILE} has been wiped on exit.")
+        except Exception as e:
+             print(f"[ERROR] Failed to wipe on exit: {e}")
     except Exception as e:
         print(f"[X] Unexpected error in main loop: {e}")
         import traceback
