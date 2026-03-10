@@ -6,14 +6,11 @@ from requests.exceptions import RequestException
 from datetime import datetime
 import os
 import sys
+import json
+import argparse
 
 # ================= KONFIGURASI =================
-ROUTERS = [
-    {"name": "R1-Core", "ip": "192.168.153.137"},
-    {"name": "R2-Dist", "ip": "192.168.153.139"},
-    {"name": "R3-Access", "ip": "192.168.153.133"},
-]
-
+ROUTERS = []
 USER = "admin"
 PASS = "admin"
 LIVE_LOG_FILE = "live_log.csv"  # Simpan di direktori saat ini
@@ -21,10 +18,18 @@ MAX_LIVE_LOG_ROWS = 2000  # Jumlah maksimal log yang disimpan (untuk efisiensi)
 POLL_INTERVAL = 5  # Detik
 
 # State untuk menyimpan ID log terakhir (Hex) untuk setiap router
-last_seen_ids = {r["name"]: -1 for r in ROUTERS}
+last_seen_ids = {}
 # State tambahan: last seen timestamp per router untuk dedup lebih robust
-last_seen_times = {r["name"]: None for r in ROUTERS}
+last_seen_times = {}
 # ===============================================
+
+def load_topology(filepath):
+    """Memuat konfigurasi router dari file JSON."""
+    global ROUTERS, last_seen_ids, last_seen_times
+    with open(filepath, 'r') as f:
+        ROUTERS = json.load(f)
+    last_seen_ids = {r["name"]: -1 for r in ROUTERS}
+    last_seen_times = {r["name"]: None for r in ROUTERS}
 
 
 def parse_mikrotik_id(id_str):
@@ -173,7 +178,19 @@ def fetch_logs(router):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Live Log Collector")
+    parser.add_argument("--topology", default="topologi_Simulasi.json", help="Path to topology JSON file")
+    args = parser.parse_args()
+
+    try:
+        load_topology(args.topology)
+    except Exception as e:
+        print(f"[ERROR] Failed to load topology config '{args.topology}': {e}")
+        sys.exit(1)
+
     print("=== LIVE LOG COLLECTOR STARTED ===")
+    print(f"[INFO] Topologi: {args.topology}")
+    print(f"[INFO] Router count: {len(ROUTERS)}")
     print(f"[INFO] Menulis ke file lokal: {LIVE_LOG_FILE}")
     print(f"[INFO] Max live log rows: {MAX_LIVE_LOG_ROWS}")
     print(f"[INFO] Poll interval: {POLL_INTERVAL} detik")
