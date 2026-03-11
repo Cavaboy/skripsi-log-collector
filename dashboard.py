@@ -135,25 +135,9 @@ class RuleEngine:
         for idx, rule in rules_df.iterrows():
             antecedents = rule["antecedents"]
             
-            # [FILTER WEAK RULES] Abaikan jika rule cuma 1 kata dan kata itu generic
-            # [FILTER WEAK RULES]
-            # 1. Abaikan jika rule cuma 1 kata dan kata itu generic ATAU nama interface
-            if len(antecedents) == 1:
-                token = list(antecedents)[0]
-                if token in GENERIC_KEYWORDS or re.match(r"^ether\d+$", token):
-                    continue
-            
-            # 2. Abaikan jika rule terdiri dari beberapa kata TAPI semuanya generic words
-            # Contoh: {'interface', 'change'}, {'neighbor', 'interface'}, {'interface', 'ether2'}
-            is_all_generic = True
-            for token in antecedents:
-                # Token dianggap generic jika ada di GENERIC_KEYWORDS ATAU formatnya etherX
-                if token not in GENERIC_KEYWORDS and not re.match(r"^ether\d+$", token):
-                    is_all_generic = False
-                    break
-            
-            if is_all_generic:
-                continue
+            # [FILTER WEAK RULES] Removed completely for AI-Only rules strategy
+            # Rely strictly on the FP-Growth support & confidence metrics
+
                 
             rule_obj = {
                 "antecedents": antecedents,
@@ -244,8 +228,8 @@ def clean_text(text):
     text = re.sub(r"([^\w\s])", r" \1 ", text)
     text = re.sub(r"[^a-z0-9\s_]", " ", text)
     tokens = set(text.split())
-    # Hapus stopwords, angka, dan kata pendek
-    return {t for t in tokens if t not in STOPWORDS and not t.isdigit() and len(t) > 2}
+    # Hapus stopwords dan kata pendek (Jangan hapus isdigit karena port spt 5678 penting)
+    return {t for t in tokens if t not in STOPWORDS and len(t) > 2}
 
 
 def map_diagnosis(val):
@@ -462,22 +446,14 @@ if uploaded_file or enable_live_log:
             with col_interval:
                 auto_refresh_interval = st.select_slider(
                     "Auto-refresh interval (seconds)",
-                    options=[5, 10, 15, 30, 60],
-                    value=10,
+                    options=[2, 5, 10, 15, 30],
+                    value=5,
                     label_visibility="collapsed",
                     key="refresh_interval_slider" # Key for state persistence
                 )
 
-            # Auto-refresh logic
-            current_time = time_module.time()
-            last_check = st.session_state["live_log_state"].get("last_check", 0)
-
-            # Only auto-refresh if analysis is active (to avoid useless refreshes when idle)
-            if st.session_state["analysis_active"]:
-                 if current_time - last_check >= auto_refresh_interval:
-                    st.session_state["live_log_state"]["last_check"] = current_time
-                    st.rerun()
-                 st.info(f"Live monitoring active - auto-refreshes every {auto_refresh_interval}s")
+            if st.session_state.get("analysis_active", False):
+                st.info(f"Live monitoring active - script will re-check every {auto_refresh_interval}s")
 
             data_source = live_log_path
             is_live_mode = True
@@ -526,9 +502,8 @@ if uploaded_file or enable_live_log:
                     chunks = []
                     total_chunks = 0
                 else:
-                    # FORCE VIEW LIMIT: User wants to see only newest 500
-                    # This ensures dashboard remains snappy even if CSV grows to 2000+
-                    full_df = full_df.tail(500).reset_index(drop=True)
+                    # FORCE VIEW LIMIT: User wants to see more context
+                    full_df = full_df.tail(2000).reset_index(drop=True)
                     
                     chunks = [full_df]
                     total_chunks = 1
@@ -680,3 +655,8 @@ if uploaded_file or enable_live_log:
 
         # Final detailed logs table
         st.divider()
+
+if is_live_mode and st.session_state.get("analysis_active", False): # type: ignore
+    import time
+    time.sleep(auto_refresh_interval) # type: ignore
+    st.rerun()
