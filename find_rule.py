@@ -18,5 +18,5 @@ def check_file(path):
     except Exception as e:
         print(f"Error reading {path}: {e}")
 
-check_file("Data/rules/Rules_Best_S0.02_C0.3.csv")
-check_file("Data/rules/dashboard_data.csv")
+check_file("Data/rules/ACTIVE_DASHBOARD_RULES_AUTO.csv")
+check_file("Data/rules/ACTIVE_DASHBOARD_RULES_CURATED.csv")

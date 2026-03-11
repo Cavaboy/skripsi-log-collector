@@ -87,8 +87,8 @@ def map_diagnosis(val):
     return None
 
 def load_rules():
-    rules_path_auto = "Data/rules/Rules_Best_S0.02_C0.3.csv"
-    rules_path_cur = "Data/rules/dashboard_data.csv"
+    rules_path_auto = "Data/rules/ACTIVE_DASHBOARD_RULES_AUTO.csv"
+    rules_path_cur = "Data/rules/ACTIVE_DASHBOARD_RULES_CURATED.csv"
 
     df_auto = pd.read_csv(rules_path_auto, low_memory=False)
     df_cur = pd.read_csv(rules_path_cur, low_memory=False)

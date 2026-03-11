@@ -201,20 +201,9 @@ class RuleEngine:
 @st.cache_resource(ttl=300)  # Changed to cache_resource for non-data objects
 def load_and_process_rules():
     """Load and preprocess rules once, cache for performance"""
-    rules_path_auto = "Data/rules/Rules_Best_S0.02_C0.3.csv"
-    rules_path_cur = "Data/rules/dashboard_data.csv"
+    rules_path_auto = "Data/rules/ACTIVE_DASHBOARD_RULES_AUTO.csv"
 
     df_auto = pd.read_csv(rules_path_auto, low_memory=False)
-    df_cur = pd.read_csv(rules_path_cur, low_memory=False)
-
-    df_cur = df_cur.rename(
-        columns={
-            "Root Cause (Gejala)": "antecedents",
-            "Impact (Akibat)": "consequents",
-            "Confidence (%)": "confidence",
-            "Lift Ratio": "lift",
-        }
-    )
 
     # Normalize antecedents parsing
     def parse_antecedents(x):
@@ -231,13 +220,8 @@ def load_and_process_rules():
         parts = [p.strip() for p in s.split(",") if p.strip()]
         return set(parts)
 
-    df_auto = df_auto.copy()
-    df_auto["antecedents"] = df_auto["antecedents"].apply(parse_antecedents)
-
-    df_cur = df_cur.copy()
-    df_cur["antecedents"] = df_cur["antecedents"].apply(parse_antecedents)
-
-    rules_df = pd.concat([df_auto, df_cur], ignore_index=True, sort=False)
+    rules_df = df_auto.copy()
+    rules_df["antecedents"] = rules_df["antecedents"].apply(parse_antecedents)
 
     # Pre-parse rules
     rules_df["final_diagnosis"] = rules_df["consequents"].apply(map_diagnosis)
