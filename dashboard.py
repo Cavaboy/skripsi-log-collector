@@ -288,6 +288,7 @@ def process_chunk_aggregation(chunk_df, rule_engine):
         diag = None
         prio = "NORMAL"
         evidence = set()
+        confidence = None
 
         # SUPER FAST ENGINE MATCHING
         best_rule = rule_engine.match(tokens)
@@ -296,6 +297,7 @@ def process_chunk_aggregation(chunk_df, rule_engine):
             diag = best_rule["final_diagnosis"]
             evidence = best_rule["antecedents"]
             lift_val = best_rule.get("lift", 0)
+            confidence = best_rule.get("confidence", None)
             prio = (
                 "FATAL"
                 if lift_val >= 6.0
@@ -305,25 +307,26 @@ def process_chunk_aggregation(chunk_df, rule_engine):
         # FALLBACK & EXPLICIT OVERRIDE
         # Menangani prefix eksplisit dari MikroTik Firewall (Sangat Akurat)
         if "broadcast_storm" in msg.lower():
-            diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"broadcast", "udp_storm"}
+            diag, prio, evidence, confidence = "BROADCAST_STORM", "FATAL", {"broadcast", "udp_storm"}, 1.0
         elif "ddos_detected" in msg.lower() or "flood" in msg.lower():
-            diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
+            diag, prio, evidence, confidence = "DDoS", "CRITICAL", {"ddos", "flood"}, 1.0
         elif not diag:
             if (
                 "internet connection lost" in msg.lower()
                 or "8.8.8.8 rto" in msg.lower()
             ):
-                diag, prio, evidence = (
+                diag, prio, evidence, confidence = (
                     "UPSTREAM_FAILURE",
                     "FATAL",
                     {"internet", "lost", "ping"},
+                    1.0,
                 )
             elif "looped packet" in msg.lower():
-                diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
+                diag, prio, evidence, confidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}, 1.0
             elif "link down" in msg.lower():
                 # We simplified the hardcode rule so any 'link down' message will trigger
                 # a LINK_FAILURE warning, regardless of the word 'ether'
-                diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
+                diag, prio, evidence, confidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}, 1.0
             elif (
                 "ospf" in msg.lower()
                 and "broadcast" in msg.lower()
@@ -378,6 +381,8 @@ if "analysis_active" not in st.session_state:
     st.session_state["analysis_active"] = False
 if "issues" not in st.session_state:
     st.session_state["issues"] = {}
+if "alerts" not in st.session_state:
+    st.session_state["alerts"] = []
 
 # Live Log Checking Toggle
 col1, col2 = st.columns([3, 1])
@@ -508,6 +513,7 @@ if uploaded_file or enable_live_log:
         results_container = st.container()
 
         st.session_state["issues"] = {}
+        st.session_state["alerts"] = []
 
         # OPTIMIZATION: Larger chunks for faster initial results + streaming
         CHUNK_SIZE = 2000
@@ -566,11 +572,11 @@ if uploaded_file or enable_live_log:
                     continue
                 filtered_issues[diag] = data
 
-            # Display live metrics
+            # --- METRICS HEADER ---
             m1, m2, m3 = st.columns(3)
-            m1.metric("Anomalies Found", len(filtered_issues))
+            m1.metric("Jenis Anomali Ditemukan", len(filtered_issues))
             m2.metric(
-                "Critical Issues",
+                "Peringatan Kritis",
                 sum(
                     1
                     for d in filtered_issues.values()
@@ -578,107 +584,111 @@ if uploaded_file or enable_live_log:
                 ),
             )
 
-            if is_live_mode: # Safe read for total count
-                 # Calculate new logs since last check
-                 current_log_count = len(chunks[0]) if chunks else 0
-                 
-                 # Get last known count from state
-                 last_count = st.session_state["live_log_state"].get("last_count", 0)
-                 new_logs_count = current_log_count - last_count
-                 
-                 # Handle reset case (if log file was cleared)
-                 if new_logs_count < 0:
-                     new_logs_count = current_log_count
-                 
-                 # Update state with current count for next run
-                 st.session_state["live_log_state"]["last_count"] = current_log_count
-
-                 m3.metric(
-                    "📊 Total Logs (Live)", 
+            if is_live_mode:
+                current_log_count = len(chunks[0]) if chunks else 0
+                last_count = st.session_state["live_log_state"].get("last_count", 0)
+                new_logs_count = current_log_count - last_count
+                if new_logs_count < 0:
+                    new_logs_count = current_log_count
+                st.session_state["live_log_state"]["last_count"] = current_log_count
+                m3.metric(
+                    "📊 Total Log Diterima",
                     current_log_count,
-                    delta=f"{new_logs_count} new" if new_logs_count > 0 else None
-                 )
-            else:
-                 m3.metric("📋 Logs Processed", "Complete") # Simplified for static
-
-            # Live Event Summary Table
-            st.write("**📈 Live Event Summary**")
-            event_data = []
-            for diag, data in filtered_issues.items():
-                event_data.append(
-                    {
-                        "Anomaly Type": diag,
-                        "Count": data["count"],
-                        "Priority": data["priority"],
-                        "Last Seen": data["last_seen"],
-                        "Routers": ", ".join(str(r) for r in data["routers"]),
-                    }
+                    delta=f"{new_logs_count} baru" if new_logs_count > 0 else None
                 )
+            else:
+                m3.metric("📋 Log Diproses", "Selesai")
 
-            if event_data:
-                event_df = pd.DataFrame(event_data)
+            st.divider()
+
+            # ======================================================
+            # SECTION 1: DATA ALIRAN LOG AKTIF (Live Log Stream)
+            # ======================================================
+            st.subheader("📋 Data Aliran Log Aktif (Live Log Stream)")
+            st.caption("Log mentah yang diterima secara real-time dari seluruh perangkat router yang dipantau.")
+
+            if chunks and not chunks[0].empty:
+                live_df = chunks[0].copy()
+                # Pilih dan rename kolom sesuai spesifikasi
+                cols_available = [c for c in ["time", "source_router", "topics", "message"] if c in live_df.columns]
+                live_display = live_df[cols_available].copy()
+                live_display.columns = [
+                    {"time": "Waktu Diterima", "source_router": "Perangkat (Host)",
+                     "topics": "Topik Modul", "message": "Pesan Log Mentah"}.get(c, c)
+                    for c in cols_available
+                ]
+                # Tampilkan terbaru di atas
+                live_display = live_display.iloc[::-1].reset_index(drop=True)
                 st.dataframe(
-                    event_df,
-                    width="stretch",
+                    live_display,
                     hide_index=True,
                     use_container_width=True,
+                    height=300,
                 )
             else:
-                st.info("No anomalies detected...")
+                st.info("Belum ada log yang diterima.")
 
-        
-        st.divider()
+            st.divider()
 
-        # Get final filtered issues for detailed display
-        final_filtered_issues = {}
-        for diag, data in st.session_state.get("issues", {}).items():
-            if diag == "DDoS" and data["count"] < DDOS_THRESHOLD_COUNT:
-                continue
-            final_filtered_issues[diag] = data
+            # ======================================================
+            # SECTION 2: DATA PERINGATAN AKAR MASALAH (Root Cause Alerts)
+            # ======================================================
+            st.subheader("🚨 Data Peringatan Akar Masalah (Root Cause Alerts)")
+            st.caption("Baris log yang diidentifikasi oleh mesin FP-Growth / Deterministic Rule sebagai indikasi gangguan jaringan.")
 
-        # Display detailed recommendation cards
-        st.subheader("🔍 Detailed Analysis & Recommendations")
-        
-        if final_filtered_issues:
-            for diag, data in sorted(
-                final_filtered_issues.items(), key=lambda x: x[1]["priority"]
-            ):
-                # if diag == "DDoS":
-                #    continue
-                info = RECOMMENDATION_MAP.get(
-                    diag, {"title": diag, "desc": "", "actions": []}
+            alerts = st.session_state.get("alerts", [])
+
+            # Filter minimum count untuk DDoS
+            filtered_alerts = [
+                a for a in alerts
+                if not (a["Diagnosis"] == "DDoS" and
+                        sum(1 for x in alerts if x["Diagnosis"] == "DDoS") < DDOS_THRESHOLD_COUNT)
+            ]
+
+            if filtered_alerts:
+                alerts_df = pd.DataFrame(filtered_alerts)
+                # Tampilkan terbaru di atas
+                alerts_df = alerts_df.iloc[::-1].reset_index(drop=True)
+                st.dataframe(
+                    alerts_df,
+                    hide_index=True,
+                    use_container_width=True,
+                    height=400,
+                    column_config={
+                        "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
+                        "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
+                        "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
+                        "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
+                        "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
+                    }
                 )
-                style = f"status-{data['priority'].lower()}"
+            else:
+                st.info("Tidak ada peringatan akar masalah yang terdeteksi.")
 
-                st.markdown(
-                    f"""
-                <div class="card {style}">
-                    <div style="display:flex; justify-content:space-between;">
-                        <span style="font-weight:bold; font-size:1.1em;">{info['title']}</span>
-                        <span class="evidence-tag" style="background:black; color:white;">{data['priority']}</span>
+            st.divider()
+
+            # --- REKOMENDASI TINDAKAN (Ringkas) ---
+            if filtered_issues:
+                st.subheader("🔧 Rekomendasi Tindakan")
+                for diag, data in sorted(filtered_issues.items(), key=lambda x: x[1]["priority"]):
+                    info = RECOMMENDATION_MAP.get(diag, {"title": diag, "desc": "", "actions": []})
+                    style = f"status-{data['priority'].lower()}"
+                    st.markdown(
+                        f"""
+                    <div class="card {style}">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="font-weight:bold; font-size:1.1em;">{info['title']}</span>
+                            <span class="evidence-tag" style="background:black; color:white;">{data['priority']}</span>
+                        </div>
+                        <div style="font-size:0.9em; margin: 8px 0;">{info['desc']}</div>
+                        <div style="font-size:0.8em;"><b>Tindakan:</b> {" · ".join(info['actions'])}</div>
                     </div>
-                    <div style="font-size:0.9em; margin: 10px 0;">{info['desc']}</div>
-                    <div style="font-size:0.8em; margin-top:5px;"><b>Key Symptoms:</b> {" ".join([f"<span class='evidence-tag'>{e}</span>" for e in data['evidence']])}</div>
-                </div>
-                """,
-                    unsafe_allow_html=True,
-                )
-
-                with st.expander(f"View Details: {info['title']}"):
-                    st.write("**Recommended Actions:**")
-                    for a in info["actions"]:
-                        st.write(f"- {a}")
-                    
-                    if data["logs"]:
-                         st.write(f"**Recent Logs ({len(data['logs'])}):**")
-                         st.dataframe(pd.DataFrame(data["logs"]))
-        else:
-             st.write("No issues requiring recommendations.")
-
-        # Final detailed logs table
-        st.divider()
+                    """,
+                        unsafe_allow_html=True,
+                    )
 
 if 'is_live_mode' in locals() and is_live_mode and st.session_state.get("analysis_active", False): # type: ignore
     import time
     time.sleep(auto_refresh_interval) # type: ignore
     st.rerun()
+
