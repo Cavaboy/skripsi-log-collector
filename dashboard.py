@@ -114,6 +114,9 @@ STOPWORDS = {
     "twoway",
     "address",
     "ip",
+    "admin",
+    "user",
+    "logged",
 }
 
 
