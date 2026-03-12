@@ -324,6 +324,19 @@ def process_chunk_aggregation(chunk_df, rule_engine):
                 # We simplified the hardcode rule so any 'link down' message will trigger
                 # a LINK_FAILURE warning, regardless of the word 'ether'
                 diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
+            elif (
+                "ospf" in msg.lower()
+                and "broadcast" in msg.lower()
+                and "neighbor" in msg.lower()
+                and (
+                    "state change to init" in msg.lower()
+                    or "neighbor election" in msg.lower()
+                )
+            ):
+                # OSPF neighbor flapping on broadcast segment = gejala kuat Broadcast Storm
+                diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"ospf_flapping", "broadcast"}
+
+
 
 
         # AGGREGATION
