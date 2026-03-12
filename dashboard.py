@@ -299,8 +299,12 @@ def process_chunk_aggregation(chunk_df, rule_engine):
                 else "CRITICAL" if lift_val >= 3.0 else "WARNING"
             )
 
-        # FALLBACK: hardcoded keyword checks only if no rule matched
-        if not diag:
+        # FALLBACK & EXPLICIT OVERRIDE
+        # Jika log secara eksplisit menyebutkan ddos_detected dari Firewall, ini HARUS di-override menjadi DDoS
+        # meskipun ML Rule sempat mengira ini Broadcast storm karena ada paket UDP/MNDP yang terkirim bersamaan.
+        if "ddos_detected" in msg.lower() or "flood" in msg.lower():
+            diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
+        elif not diag:
             if (
                 "internet connection lost" in msg.lower()
                 or "8.8.8.8 rto" in msg.lower()
@@ -314,8 +318,6 @@ def process_chunk_aggregation(chunk_df, rule_engine):
                 diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
             elif "link down" in msg.lower() and "ether" in msg.lower():
                 diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
-            elif "ddos_detected" in msg.lower() or "flood" in msg.lower():
-                diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
 
         # AGGREGATION
         if diag:
@@ -656,7 +658,7 @@ if uploaded_file or enable_live_log:
         # Final detailed logs table
         st.divider()
 
-if is_live_mode and st.session_state.get("analysis_active", False): # type: ignore
+if 'is_live_mode' in locals() and is_live_mode and st.session_state.get("analysis_active", False): # type: ignore
     import time
     time.sleep(auto_refresh_interval) # type: ignore
     st.rerun()
