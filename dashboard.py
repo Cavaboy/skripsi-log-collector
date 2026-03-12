@@ -306,7 +306,10 @@ def process_chunk_aggregation(chunk_df, rule_engine):
         # Jika log secara eksplisit menyebutkan ddos_detected dari Firewall, ini HARUS di-override menjadi DDoS
         # meskipun ML Rule sempat mengira ini Broadcast storm karena ada paket UDP/MNDP yang terkirim bersamaan.
         if "ddos_detected" in msg.lower() or "flood" in msg.lower():
-            diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
+            if "proto udp" in msg.lower() and ("5678" in msg or "138" in msg):
+                diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"mndp_storm"}
+            else:
+                diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
         elif not diag:
             if (
                 "internet connection lost" in msg.lower()
