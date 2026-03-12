@@ -652,35 +652,33 @@ if uploaded_file or enable_live_log:
                         unsafe_allow_html=True,
                     )
 
-                    with st.expander(f"Lihat Detail: {info['title']}"):
-                        st.write("**Tindakan yang Direkomendasikan:**")
-                        for a in info["actions"]:
-                            st.write(f"- {a}")
+                    st.write("**Tindakan yang Direkomendasikan:**")
+                    for a in info["actions"]:
+                        st.write(f"- {a}")
 
-                        # Tabel Data Peringatan Akar Masalah untuk diagnosis ini
-                        alerts = st.session_state.get("alerts", [])
-                        diag_alerts = [
-                            a for a in alerts if a["Diagnosis"] == diag
-                        ]
-                        if diag_alerts:
-                            st.write(f"**Data Peringatan Akar Masalah ({len(diag_alerts)} entri):**")
-                            alerts_df = pd.DataFrame(diag_alerts)
-                            alerts_df = alerts_df.iloc[::-1].reset_index(drop=True)
-                            st.dataframe(
-                                alerts_df,
-                                hide_index=True,
-                                use_container_width=True,
-                                height=max(200, min(600, len(diag_alerts) * 38 + 40)),
-                                column_config={
-                                    "Waktu Deteksi": st.column_config.TextColumn("Waktu Deteksi", width="medium"),
-                                    "Perangkat": st.column_config.TextColumn("Perangkat", width="small"),
-                                    "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
-                                    "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
-                                    "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
-                                    "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
-                                    "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
-                                }
-                            )
+                    # Tabel Data Peringatan Akar Masalah untuk diagnosis ini
+                    alerts = st.session_state.get("alerts", [])
+                    diag_alerts = [a for a in alerts if a["Diagnosis"] == diag]
+                    if diag_alerts:
+                        st.write(f"**Data Peringatan Akar Masalah ({len(diag_alerts)} entri):**")
+                        alerts_df = pd.DataFrame(diag_alerts)
+                        alerts_df = alerts_df.iloc[::-1].reset_index(drop=True)
+                        st.dataframe(
+                            alerts_df,
+                            hide_index=True,
+                            use_container_width=True,
+                            height=max(200, min(600, len(diag_alerts) * 38 + 40)),
+                            column_config={
+                                "Waktu Deteksi": st.column_config.TextColumn("Waktu Deteksi", width="medium"),
+                                "Perangkat": st.column_config.TextColumn("Perangkat", width="small"),
+                                "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
+                                "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
+                                "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
+                                "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
+                                "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
+                            }
+                        )
+                    st.divider()
             else:
                 st.info("Tidak ada anomali yang terdeteksi.")
 
@@ -688,6 +686,5 @@ if 'is_live_mode' in locals() and is_live_mode and st.session_state.get("analysi
     import time
     time.sleep(auto_refresh_interval) # type: ignore
     st.rerun()
-# type: ignore
-    st.rerun()
+
 
