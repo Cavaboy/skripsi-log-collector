@@ -303,29 +303,28 @@ def process_chunk_aggregation(chunk_df, rule_engine):
             )
 
         # FALLBACK & EXPLICIT OVERRIDE
-        # Jika log secara eksplisit menyebutkan ddos_detected dari Firewall, ini HARUS di-override menjadi DDoS
-        # meskipun ML Rule sempat mengira ini Broadcast storm karena ada paket UDP/MNDP yang terkirim bersamaan.
-        if "ddos_detected" in msg.lower() or "flood" in msg.lower():
-            if "proto udp" in msg.lower() and ("5678" in msg or "138" in msg):
-                diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"mndp_storm"}
-            else:
-                diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
-        elif not diag:
-            if (
-                "internet connection lost" in msg.lower()
-                or "8.8.8.8 rto" in msg.lower()
-            ):
-                diag, prio, evidence = (
-                    "UPSTREAM_FAILURE",
-                    "FATAL",
-                    {"internet", "lost", "ping"},
-                )
-            elif "looped packet" in msg.lower():
-                diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
-            elif "link down" in msg.lower():
-                # We simplified the hardcode rule so any 'link down' message will trigger
-                # a LINK_FAILURE warning, regardless of the word 'ether'
-                diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
+        # Menangani prefix eksplisit dari MikroTik Firewall (Sangat Akurat)
+        # if "broadcast_storm" in msg.lower():
+        #     diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"broadcast", "udp_storm"}
+        # elif "ddos_detected" in msg.lower() or "flood" in msg.lower():
+        #     diag, prio, evidence = "DDoS", "CRITICAL", {"ddos", "flood"}
+        # elif not diag:
+        #     if (
+        #         "internet connection lost" in msg.lower()
+        #         or "8.8.8.8 rto" in msg.lower()
+        #     ):
+        #         diag, prio, evidence = (
+        #             "UPSTREAM_FAILURE",
+        #             "FATAL",
+        #             {"internet", "lost", "ping"},
+        #         )
+        #     elif "looped packet" in msg.lower():
+        #         diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
+        #     elif "link down" in msg.lower():
+        #         # We simplified the hardcode rule so any 'link down' message will trigger
+        #         # a LINK_FAILURE warning, regardless of the word 'ether'
+        #         diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
+
 
         # AGGREGATION
         if diag:
