@@ -316,7 +316,9 @@ def process_chunk_aggregation(chunk_df, rule_engine):
                 )
             elif "looped packet" in msg.lower():
                 diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}
-            elif "link down" in msg.lower() and "ether" in msg.lower():
+            elif "link down" in msg.lower():
+                # We simplified the hardcode rule so any 'link down' message will trigger
+                # a LINK_FAILURE warning, regardless of the word 'ether'
                 diag, prio, evidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}
 
         # AGGREGATION
