@@ -572,7 +572,7 @@ if uploaded_file or enable_live_log:
                     continue
                 filtered_issues[diag] = data
 
-            # --- METRICS HEADER ---
+            # METRICS HEADER
             m1, m2, m3 = st.columns(3)
             m1.metric("Jenis Anomali Ditemukan", len(filtered_issues))
             m2.metric(
@@ -592,24 +592,23 @@ if uploaded_file or enable_live_log:
                     new_logs_count = current_log_count
                 st.session_state["live_log_state"]["last_count"] = current_log_count
                 m3.metric(
-                    "📊 Total Log Diterima",
+                    "Total Log Diterima",
                     current_log_count,
                     delta=f"{new_logs_count} baru" if new_logs_count > 0 else None
                 )
             else:
-                m3.metric("📋 Log Diproses", "Selesai")
+                m3.metric("Log Diproses", "Selesai")
 
             st.divider()
 
             # ======================================================
             # SECTION 1: DATA ALIRAN LOG AKTIF (Live Log Stream)
             # ======================================================
-            st.subheader("📋 Data Aliran Log Aktif (Live Log Stream)")
+            st.subheader("Data Aliran Log Aktif (Live Log Stream)")
             st.caption("Log mentah yang diterima secara real-time dari seluruh perangkat router yang dipantau.")
 
             if chunks and not chunks[0].empty:
                 live_df = chunks[0].copy()
-                # Pilih dan rename kolom sesuai spesifikasi
                 cols_available = [c for c in ["time", "source_router", "topics", "message"] if c in live_df.columns]
                 live_display = live_df[cols_available].copy()
                 live_display.columns = [
@@ -617,7 +616,6 @@ if uploaded_file or enable_live_log:
                      "topics": "Topik Modul", "message": "Pesan Log Mentah"}.get(c, c)
                     for c in cols_available
                 ]
-                # Tampilkan terbaru di atas
                 live_display = live_display.iloc[::-1].reset_index(drop=True)
                 st.dataframe(
                     live_display,
@@ -631,48 +629,15 @@ if uploaded_file or enable_live_log:
             st.divider()
 
             # ======================================================
-            # SECTION 2: DATA PERINGATAN AKAR MASALAH (Root Cause Alerts)
+            # SECTION 2: ANALISIS & REKOMENDASI + TABEL PERINGATAN
             # ======================================================
-            st.subheader("🚨 Data Peringatan Akar Masalah (Root Cause Alerts)")
-            st.caption("Baris log yang diidentifikasi oleh mesin FP-Growth / Deterministic Rule sebagai indikasi gangguan jaringan.")
+            st.subheader("Analisis Akar Masalah & Rekomendasi Tindakan")
 
-            alerts = st.session_state.get("alerts", [])
-
-            # Filter minimum count untuk DDoS
-            filtered_alerts = [
-                a for a in alerts
-                if not (a["Diagnosis"] == "DDoS" and
-                        sum(1 for x in alerts if x["Diagnosis"] == "DDoS") < DDOS_THRESHOLD_COUNT)
-            ]
-
-            if filtered_alerts:
-                alerts_df = pd.DataFrame(filtered_alerts)
-                # Tampilkan terbaru di atas
-                alerts_df = alerts_df.iloc[::-1].reset_index(drop=True)
-                st.dataframe(
-                    alerts_df,
-                    hide_index=True,
-                    use_container_width=True,
-                    height=400,
-                    column_config={
-                        "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
-                        "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
-                        "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
-                        "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
-                        "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
-                    }
-                )
-            else:
-                st.info("Tidak ada peringatan akar masalah yang terdeteksi.")
-
-            st.divider()
-
-            # --- REKOMENDASI TINDAKAN (Ringkas) ---
             if filtered_issues:
-                st.subheader("🔧 Rekomendasi Tindakan")
                 for diag, data in sorted(filtered_issues.items(), key=lambda x: x[1]["priority"]):
                     info = RECOMMENDATION_MAP.get(diag, {"title": diag, "desc": "", "actions": []})
                     style = f"status-{data['priority'].lower()}"
+
                     st.markdown(
                         f"""
                     <div class="card {style}">
@@ -680,15 +645,49 @@ if uploaded_file or enable_live_log:
                             <span style="font-weight:bold; font-size:1.1em;">{info['title']}</span>
                             <span class="evidence-tag" style="background:black; color:white;">{data['priority']}</span>
                         </div>
-                        <div style="font-size:0.9em; margin: 8px 0;">{info['desc']}</div>
-                        <div style="font-size:0.8em;"><b>Tindakan:</b> {" · ".join(info['actions'])}</div>
+                        <div style="font-size:0.9em; margin: 10px 0;">{info['desc']}</div>
+                        <div style="font-size:0.8em; margin-top:5px;"><b>Key Symptoms:</b> {" ".join([f"<span class='evidence-tag'>{e}</span>" for e in data['evidence']])}</div>
                     </div>
                     """,
                         unsafe_allow_html=True,
                     )
 
+                    with st.expander(f"Lihat Detail: {info['title']}"):
+                        st.write("**Tindakan yang Direkomendasikan:**")
+                        for a in info["actions"]:
+                            st.write(f"- {a}")
+
+                        # Tabel Data Peringatan Akar Masalah untuk diagnosis ini
+                        alerts = st.session_state.get("alerts", [])
+                        diag_alerts = [
+                            a for a in alerts if a["Diagnosis"] == diag
+                        ]
+                        if diag_alerts:
+                            st.write(f"**Data Peringatan Akar Masalah ({len(diag_alerts)} entri):**")
+                            alerts_df = pd.DataFrame(diag_alerts)
+                            alerts_df = alerts_df.iloc[::-1].reset_index(drop=True)
+                            st.dataframe(
+                                alerts_df,
+                                hide_index=True,
+                                use_container_width=True,
+                                height=max(200, min(600, len(diag_alerts) * 38 + 40)),
+                                column_config={
+                                    "Waktu Deteksi": st.column_config.TextColumn("Waktu Deteksi", width="medium"),
+                                    "Perangkat": st.column_config.TextColumn("Perangkat", width="small"),
+                                    "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
+                                    "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
+                                    "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
+                                    "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
+                                    "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
+                                }
+                            )
+            else:
+                st.info("Tidak ada anomali yang terdeteksi.")
+
 if 'is_live_mode' in locals() and is_live_mode and st.session_state.get("analysis_active", False): # type: ignore
     import time
     time.sleep(auto_refresh_interval) # type: ignore
+    st.rerun()
+# type: ignore
     st.rerun()
 
