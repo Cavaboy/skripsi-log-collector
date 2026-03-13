@@ -359,8 +359,8 @@ def process_chunk_aggregation(chunk_df, rule_engine):
             issue["routers"].add(row.get("source_router", "Unknown"))
             issue["last_seen"] = row.get("time", "-")
             issue["evidence"].update(evidence)
-            # Hardcode overrides have confidence=1.0; ML-matched logs have actual confidence
-            conf_display = f"{confidence * 100:.1f}%" if confidence is not None else "100.0% (Deterministic)"
+            # Hardcode overrides: confidence defaults to 100.0%; ML-matched logs show actual confidence
+            conf_display = f"{confidence * 100:.1f}%" if confidence is not None else "100.0%"
             if len(issue["logs"]) < 200:
                 issue["logs"].append({
                     "Time": row.get("time", "-"),
