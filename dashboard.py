@@ -359,16 +359,17 @@ def process_chunk_aggregation(chunk_df, rule_engine):
             issue["routers"].add(row.get("source_router", "Unknown"))
             issue["last_seen"] = row.get("time", "-")
             issue["evidence"].update(evidence)
-            conf_display = f"{confidence * 100:.1f}%" if confidence is not None else "N/A"
+            # Hardcode overrides have confidence=1.0; ML-matched logs have actual confidence
+            conf_display = f"{confidence * 100:.1f}%" if confidence is not None else "100.0% (Deterministic)"
             if len(issue["logs"]) < 200:
                 issue["logs"].append({
-                    "Waktu Deteksi": row.get("time", "-"),
-                    "Perangkat": row.get("source_router", "Unknown"),
+                    "Time": row.get("time", "-"),
+                    "Device": row.get("source_router", "Unknown"),
                     "Diagnosis": diag,
-                    "Tingkat Prioritas": prio,
-                    "Gejala (Antecedents)": ", ".join(sorted(str(e) for e in evidence)),
-                    "Keyakinan (Confidence)": conf_display,
-                    "Pesan Pemicu": msg[:120] + "..." if len(msg) > 120 else msg,
+                    "Priority": prio,
+                    "Symptoms (Antecedents)": ", ".join(sorted(str(e) for e in evidence)),
+                    "Confidence": conf_display,
+                    "Trigger Message": msg[:120] + "..." if len(msg) > 120 else msg,
                 })
 
     return matched_count
@@ -659,7 +660,7 @@ if uploaded_file or enable_live_log:
                             st.write(f"- {a}")
 
                         if data["logs"]:
-                            st.write(f"**Data Peringatan Akar Masalah ({len(data['logs'])} entri):**")
+                            st.write(f"**Root Cause Alert Data ({len(data['logs'])} entries):**")
                             logs_df = pd.DataFrame(data["logs"])
                             st.dataframe(
                                 logs_df,
@@ -667,13 +668,13 @@ if uploaded_file or enable_live_log:
                                 use_container_width=True,
                                 height=max(200, min(600, len(data["logs"]) * 38 + 40)),
                                 column_config={
-                                    "Waktu Deteksi": st.column_config.TextColumn("Waktu Deteksi", width="medium"),
-                                    "Perangkat": st.column_config.TextColumn("Perangkat", width="small"),
+                                    "Time": st.column_config.TextColumn("Time", width="medium"),
+                                    "Device": st.column_config.TextColumn("Device", width="small"),
                                     "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
-                                    "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
-                                    "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
-                                    "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
-                                    "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
+                                    "Priority": st.column_config.TextColumn("Priority", width="small"),
+                                    "Symptoms (Antecedents)": st.column_config.TextColumn("Symptoms", width="medium"),
+                                    "Confidence": st.column_config.TextColumn("Confidence", width="small"),
+                                    "Trigger Message": st.column_config.TextColumn("Trigger Message", width="large"),
                                 }
                             )
                     st.divider()
