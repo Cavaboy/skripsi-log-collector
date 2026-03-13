@@ -340,8 +340,6 @@ def process_chunk_aggregation(chunk_df, rule_engine):
                 diag, prio, evidence = "BROADCAST_STORM", "FATAL", {"ospf_flapping", "broadcast"}
 
 
-
-
         # AGGREGATION
         if diag:
             matched_count += 1
@@ -361,14 +359,17 @@ def process_chunk_aggregation(chunk_df, rule_engine):
             issue["routers"].add(row.get("source_router", "Unknown"))
             issue["last_seen"] = row.get("time", "-")
             issue["evidence"].update(evidence)
-            if len(issue["logs"]) < 50:
-                issue["logs"].append(
-                    {
-                        "Timestamp": row.get("time", "-"),
-                        "Router": row.get("source_router", "Unknown"),
-                        "Message": msg,
-                    }
-                )
+            conf_display = f"{confidence * 100:.1f}%" if confidence is not None else "N/A"
+            if len(issue["logs"]) < 200:
+                issue["logs"].append({
+                    "Waktu Deteksi": row.get("time", "-"),
+                    "Perangkat": row.get("source_router", "Unknown"),
+                    "Diagnosis": diag,
+                    "Tingkat Prioritas": prio,
+                    "Gejala (Antecedents)": ", ".join(sorted(str(e) for e in evidence)),
+                    "Keyakinan (Confidence)": conf_display,
+                    "Pesan Pemicu": msg[:120] + "..." if len(msg) > 120 else msg,
+                })
 
     return matched_count
 
@@ -652,32 +653,29 @@ if uploaded_file or enable_live_log:
                         unsafe_allow_html=True,
                     )
 
-                    st.write("**Tindakan yang Direkomendasikan:**")
-                    for a in info["actions"]:
-                        st.write(f"- {a}")
+                    with st.expander(f"Lihat Detail & Data Peringatan: {info['title']}"):
+                        st.write("**Tindakan yang Direkomendasikan:**")
+                        for a in info["actions"]:
+                            st.write(f"- {a}")
 
-                    # Tabel Data Peringatan Akar Masalah untuk diagnosis ini
-                    alerts = st.session_state.get("alerts", [])
-                    diag_alerts = [a for a in alerts if a["Diagnosis"] == diag]
-                    if diag_alerts:
-                        st.write(f"**Data Peringatan Akar Masalah ({len(diag_alerts)} entri):**")
-                        alerts_df = pd.DataFrame(diag_alerts)
-                        alerts_df = alerts_df.iloc[::-1].reset_index(drop=True)
-                        st.dataframe(
-                            alerts_df,
-                            hide_index=True,
-                            use_container_width=True,
-                            height=max(200, min(600, len(diag_alerts) * 38 + 40)),
-                            column_config={
-                                "Waktu Deteksi": st.column_config.TextColumn("Waktu Deteksi", width="medium"),
-                                "Perangkat": st.column_config.TextColumn("Perangkat", width="small"),
-                                "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
-                                "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
-                                "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
-                                "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
-                                "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
-                            }
-                        )
+                        if data["logs"]:
+                            st.write(f"**Data Peringatan Akar Masalah ({len(data['logs'])} entri):**")
+                            logs_df = pd.DataFrame(data["logs"])
+                            st.dataframe(
+                                logs_df,
+                                hide_index=True,
+                                use_container_width=True,
+                                height=max(200, min(600, len(data["logs"]) * 38 + 40)),
+                                column_config={
+                                    "Waktu Deteksi": st.column_config.TextColumn("Waktu Deteksi", width="medium"),
+                                    "Perangkat": st.column_config.TextColumn("Perangkat", width="small"),
+                                    "Diagnosis": st.column_config.TextColumn("Diagnosis", width="medium"),
+                                    "Tingkat Prioritas": st.column_config.TextColumn("Prioritas", width="small"),
+                                    "Gejala (Antecedents)": st.column_config.TextColumn("Gejala", width="medium"),
+                                    "Keyakinan (Confidence)": st.column_config.TextColumn("Keyakinan", width="small"),
+                                    "Pesan Pemicu": st.column_config.TextColumn("Pesan Pemicu", width="large"),
+                                }
+                            )
                     st.divider()
             else:
                 st.info("Tidak ada anomali yang terdeteksi.")
@@ -686,5 +684,3 @@ if 'is_live_mode' in locals() and is_live_mode and st.session_state.get("analysi
     import time
     time.sleep(auto_refresh_interval) # type: ignore
     st.rerun()
-
-
