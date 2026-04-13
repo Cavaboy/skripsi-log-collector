@@ -11,6 +11,7 @@ import errno
 
 # ================= KONFIGURASI =================
 ROUTERS = [
+    {"name": "R-Edge", "ip": "192.168.100.1"},
     {"name": "R-Dist-1", "ip": "10.255.255.1"},
     {"name": "R-Dist-2", "ip": "10.255.255.2"},
     {"name": "R-Dist-3", "ip": "10.255.255.3"},
