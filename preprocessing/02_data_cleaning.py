@@ -2,11 +2,32 @@ import pandas as pd
 import re
 import os
 
+import glob
+
 # ==========================================
-# KONFIGURASI
+# KONFIGURASI VERSI OTOMATIS
 # ==========================================
-INPUT_FILE = "../Data/Master_Dataset_Gabungan_v2.2.csv"
-OUTPUT_FILE = "../Data/Data_Siap_Mining_revisi_v2.2.csv"
+MAJOR_VERSION = 3
+script_dir = os.path.dirname(os.path.abspath(__file__))
+data_dir = os.path.normpath(os.path.join(script_dir, "../Data"))
+
+# Cari versi minor tertinggi yang ada di folder Data dari Master Dataset
+existing_files = glob.glob(os.path.join(data_dir, f"Master_Dataset_Gabungan_v{MAJOR_VERSION}.*.csv"))
+minor_versions = []
+for f in existing_files:
+    match = re.search(rf"v{MAJOR_VERSION}\.(\d+)\.csv$", f)
+    if match:
+        minor_versions.append(int(match.group(1)))
+
+if minor_versions:
+    latest_minor = max(minor_versions)
+else:
+    print(f"[ERROR] Tidak ditemukan Master_Dataset_Gabungan_v{MAJOR_VERSION}.*.csv di {data_dir}")
+    exit()
+
+INPUT_FILE = os.path.join(data_dir, f"Master_Dataset_Gabungan_v{MAJOR_VERSION}.{latest_minor}.csv")
+OUTPUT_FILE = os.path.join(data_dir, f"Data_Siap_Mining_v{MAJOR_VERSION}.{latest_minor}.csv")
+print(f"Versi terdeteksi: v{MAJOR_VERSION}.{latest_minor}")
 
 # 1. STOPWORDS (KATA SAMPAH)
 STOPWORDS = {
