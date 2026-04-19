@@ -103,6 +103,19 @@ def fetch_logs(router):
 
         current_last_id = last_seen_ids[router["name"]]
         last_time = last_seen_times[router["name"]]
+
+        # ---------------------------------------------
+        # DETEKSI ROUTER REBOOT / LOG RESET
+        # Jika ID terbesar dari API sekarang ternyata lebih kecil dari prior last_seen_id,
+        # berarti memori log router ter-reset (biasanya akibat crash/reboot/power mati).
+        # ---------------------------------------------
+        if raw_data_sorted:
+            highest_fetched_id = parse_mikrotik_id(raw_data_sorted[-1].get(".id", "*0"))
+            if current_last_id != -1 and highest_fetched_id < current_last_id:
+                print(f"    [!] Mendeteksi router {router['name']} log-reset / reboot. Menyesuaikan state...")
+                current_last_id = -1
+                last_time = None
+
         max_id_in_batch = current_last_id
         latest_time = last_time
 
