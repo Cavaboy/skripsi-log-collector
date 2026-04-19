@@ -357,7 +357,7 @@ col1, col2 = st.columns([3, 1])
 with col1:
     st.subheader("Log Source")
 with col2:
-    enable_live_log = st.checkbox("Live Log Checking", value=False)
+    enable_live_log = st.checkbox("Live Log Checking", value=True)
 
 if enable_live_log:
     st.info("Live Log Checking enabled - monitoring live_log.csv for real-time updates")
