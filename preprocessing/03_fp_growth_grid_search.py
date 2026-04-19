@@ -13,15 +13,15 @@ from mlxtend.preprocessing import TransactionEncoder
 from mlxtend.frequent_patterns import fpgrowth, association_rules
 
 try:
-    from google.colab import files
+    from google.colab import files  # type: ignore
     IN_COLAB = True
 except ImportError:
     IN_COLAB = False
 
 # --- KONFIGURASI ---
 # Range Support & Confidence (Tetap sama seperti rencana Anda)
-SUPPORT_RANGE = [0.01, 0.05, 0.1, 0.15]
-CONFIDENCE_RANGE = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+SUPPORT_RANGE = [0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15]
+CONFIDENCE_RANGE = [0.3, 0.35, 0.4, 0.5, 0.6, 0.7, 0.8]
 
 # PEMBATAS UKURAN FILE (SOLUSI UTAMA)
 # Max Len 4 artinya: Maksimal kombinasi 3 kata penyebab + 1 diagnosis.
@@ -143,7 +143,13 @@ for min_sup in SUPPORT_RANGE:
             print(f"-> Rules: {len(final_rules)}")
 
             # Simpan File
-            filename = f"Rules_Sup{min_sup}_Conf{min_conf}_{CURRENT_VERSION}.csv"
+            if IN_COLAB:
+                filename = f"Rules_Sup{min_sup}_Conf{min_conf}_{CURRENT_VERSION}.csv"
+            else:
+                rules_dir = os.path.join(data_dir, "rules")
+                os.makedirs(rules_dir, exist_ok=True)
+                filename = os.path.join(rules_dir, f"Rules_Sup{min_sup}_Conf{min_conf}_{CURRENT_VERSION}.csv")
+            
             final_rules.to_csv(filename, index=False)
             generated_files.append(filename)
 

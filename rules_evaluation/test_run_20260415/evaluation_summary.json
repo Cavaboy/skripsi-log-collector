@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-04-19T16:20:55.796664",
+  "rules_file": "Rules_Sup0.01_Conf0.3_v3.0.csv",
+  "test_samples": 2500,
+  "accuracy": 0.3748,
+  "precision_macro": 0.317,
+  "recall_macro": 0.3748,
+  "f1_macro": 0.3337,
+  "precision_weighted": 0.317,
+  "recall_weighted": 0.3748,
+  "f1_weighted": 0.3337,
+  "matched_count": 2425,
+  "no_match_count": 75
+}
