@@ -188,7 +188,7 @@ class RuleEngine:
 @st.cache_resource(ttl=300)  # Changed to cache_resource for non-data objects
 def load_and_process_rules():
     """Load and preprocess rules once, cache for performance"""
-    rules_path_auto = "Data/rules/ACTIVE_DASHBOARD_RULES_AUTO.csv"
+    rules_path_auto = "Data/rules/Rules_Sup0.01_Conf0.3_v3.0.csv"
 
     df_auto = pd.read_csv(rules_path_auto, low_memory=False)
 
@@ -304,44 +304,6 @@ def process_chunk_aggregation(chunk_df, rule_engine):
                 else "CRITICAL" if lift_val >= 3.0 else "WARNING"
             )
 
-        # FALLBACK & EXPLICIT OVERRIDE
-        # Menangani prefix eksplisit dari MikroTik Firewall (Sangat Akurat)
-        # Confidence dikalibrasi dari statistik ML rules (bukan 100% agar realistis)
-        if "broadcast_storm" in msg.lower():
-            # Firewall prefix eksplisit; mean ML BROADCAST_STORM=0.891, max=1.0
-            diag, prio, evidence, confidence = "BROADCAST_STORM", "FATAL", {"broadcast", "udp_storm"}, 0.92
-        elif "ddos_detected" in msg.lower() or "flood" in msg.lower():
-            # Firewall prefix eksplisit; tidak ada ML rules DDoS, estimasi konservatif
-            diag, prio, evidence, confidence = "DDoS", "CRITICAL", {"ddos", "flood"}, 0.90
-        elif not diag:
-            if (
-                "internet connection lost" in msg.lower()
-                or "8.8.8.8 rto" in msg.lower()
-            ):
-                # Pesan eksplisit dari script ping; ML UPSTREAM_FAILURE max=0.40
-                diag, prio, evidence, confidence = (
-                    "UPSTREAM_FAILURE",
-                    "FATAL",
-                    {"internet", "lost", "ping"},
-                    0.88,
-                )
-            elif "looped packet" in msg.lower():
-                # Langsung cocok pattern training data; ML BROADCAST_STORM median=1.0
-                diag, prio, evidence, confidence = "BROADCAST_STORM", "FATAL", {"looped", "packet"}, 0.95
-            elif "link down" in msg.lower():
-                # Keyword spesifik; ML LINK_FAILURE max=0.46, keyword lebih targeted
-                diag, prio, evidence, confidence = "LINK_FAILURE", "CRITICAL", {"link", "down"}, 0.85
-            elif (
-                "ospf" in msg.lower()
-                and "broadcast" in msg.lower()
-                and "neighbor" in msg.lower()
-                and (
-                    "state change to init" in msg.lower()
-                    or "neighbor election" in msg.lower()
-                )
-            ):
-                # Indikator tidak langsung (efek sekunder storm); lebih konservatif
-                diag, prio, evidence, confidence = "BROADCAST_STORM", "FATAL", {"ospf_flapping", "broadcast"}, 0.78
 
 
         # AGGREGATION
